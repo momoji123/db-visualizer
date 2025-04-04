@@ -1,6 +1,9 @@
 // script.js
 
 document.addEventListener('DOMContentLoaded', function() {
+	// Initialize Table Filter module
+    TableFilter.init();
+	
     // DOM Elements
     const fileInput = document.getElementById('file-input');
     const uploadBtn = document.getElementById('upload-btn');
@@ -21,6 +24,13 @@ document.addEventListener('DOMContentLoaded', function() {
     let draggedTable = null;
     let dragOffset = { x: 0, y: 0 };
     let tablePositions = {};
+	
+	// Make renderVisualization accessible outside the IIFE scope
+	window.renderVisualization = function() {
+		// This function will be defined later in this file
+		// It will reference the actual renderVisualization function
+	};
+
 
     // Event Listeners
     uploadBtn.addEventListener('click', () => fileInput.click());
@@ -140,6 +150,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 };
             });
         });
+		
+		// After processing data and setting up tables, update the filter sidebar
+		TableFilter.updateTableList(schemas);
         
         renderVisualization();
         updateStatus();
@@ -170,6 +183,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Render relations
         renderRelations();
     }
+	
+	// Store reference to the function
+	window.renderVisualization = renderVisualization;
+
+	// Also add a fallback event listener
+	document.addEventListener('filtersApplied', renderVisualization);
 
     function renderSchemas() {
         Object.keys(schemas).forEach(schemaName => {
@@ -227,6 +246,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderTables() {
         Object.keys(schemas).forEach(schemaName => {
             Object.keys(schemas[schemaName].tables).forEach(tableName => {
+				if (!TableFilter.isTableVisible(schemaName, tableName)) {
+					return; // Skip rendering this table
+				}
+				
                 const table = schemas[schemaName].tables[tableName];
                 const position = tablePositions[`${schemaName}.${tableName}`] || { x: 0, y: 0 };
                 
@@ -298,11 +321,22 @@ function renderRelations() {
         const schema = schemas[schemaName];
         
         Object.keys(schema.tables).forEach(tableName => {
+			// Skip if this table is filtered out
+            if (!TableFilter.isTableVisible(schemaName, tableName)) {
+                return;
+            }
+			
             const table = schema.tables[tableName];
             
             table.relations.forEach(relation => {
                 const fromKey = `${relation.from.schema}.${relation.from.table}`;
                 const toKey = `${relation.to.schema}.${relation.to.table}`;
+				
+				// Skip if either source or target table is filtered out
+                if (!TableFilter.isTableVisible(relation.from.schema, relation.from.table) || 
+                    !TableFilter.isTableVisible(relation.to.schema, relation.to.table)) {
+                    return;
+                }
                 
                 if (tablePositions[fromKey] && tablePositions[toKey]) {
                     const fromTableElem = document.getElementById(`table-${relation.from.schema}-${relation.from.table}`);

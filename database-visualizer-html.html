@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Database Schema Visualizer</title>
     <link rel="stylesheet" href="database-visualizer-css.css">
+	<link rel="stylesheet" href="sidebar.css">
 </head>
 <body>
     <div class="container">
@@ -12,6 +13,11 @@
         <header class="header">
             <h1>Database Schema Visualizer</h1>
             <div class="header-buttons">
+				<!-- Add a toggle button for the sidebar in the header-buttons div -->
+				<button id="toggle-sidebar" class="btn btn-primary">
+					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="18" x2="20" y2="18"></line></svg>
+					Filter
+				</button>
                 <button id="upload-btn" class="btn btn-primary">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                     Upload CSV
@@ -23,6 +29,33 @@
                 </button>
             </div>
         </header>
+		
+		<!-- Sidebar -->
+		<div class="sidebar" id="filter-sidebar">
+			<div class="sidebar-header">
+				<h2>Filter Tables</h2>
+				<button id="close-sidebar" class="btn">
+					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+				</button>
+			</div>
+			<div class="sidebar-content">
+				<div class="search-container">
+					<input type="text" id="table-search" placeholder="Search tables...">
+					<button id="clear-search" class="btn">
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+					</button>
+				</div>
+				<div class="select-all-container">
+					<label><input type="checkbox" id="select-all-tables" checked> Select All</label>
+				</div>
+				<div id="table-list" class="table-list">
+					<!-- Table checkboxes will be populated here -->
+				</div>
+				<div class="filter-actions">
+					<button id="apply-filters" class="btn btn-primary">Apply Filters</button>
+				</div>
+			</div>
+		</div>
         
         <!-- Main content area -->
         <main class="content">
@@ -47,6 +80,7 @@
         </footer>
     </div>
     
+	<script src="table-filter.js"></script>
     <script src="database-visualizer-js.js"></script>
 </body>
 </html>
