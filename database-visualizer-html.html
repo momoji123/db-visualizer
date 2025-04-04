@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Schema Visualizer</title>
+    <link rel="stylesheet" href="database-visualizer-css.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>Database Schema Visualizer</h1>
+            <div class="header-buttons">
+                <button id="upload-btn" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    Upload CSV
+                </button>
+                <input type="file" id="file-input" accept=".csv" style="display: none;">
+                <button id="export-btn" class="btn btn-success" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Export CSV
+                </button>
+            </div>
+        </header>
+        
+        <!-- Main content area -->
+        <main class="content">
+            <div id="empty-state" class="empty-state">
+                <p>No data loaded. Please upload a CSV file.</p>
+                <button id="upload-btn-empty" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    Upload CSV
+                </button>
+            </div>
+            
+            <div id="workspace" class="workspace" style="display: none;">
+                <div id="tables-container" class="tables-container"></div>
+				<svg id="svg-canvas" class="svg-canvas"></svg>
+            </div>
+        </main>
+        
+        <!-- Footer -->
+        <footer class="footer">
+            <div id="selection-info" class="selection-info"></div>
+            <div id="status-info" class="status-info">No data loaded</div>
+        </footer>
+    </div>
+    
+    <script src="database-visualizer-js.js"></script>
+</body>
+</html>
