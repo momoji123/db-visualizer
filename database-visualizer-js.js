@@ -297,151 +297,151 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-function renderRelations() {
-    // Clear existing SVG content
-    svgCanvas.innerHTML = '';
-    
-    // Create SVG namespace elements
-    const ns = "http://www.w3.org/2000/svg";
-    
-    // Make SVG canvas visible and ensure it spans the entire workspace
-    svgCanvas.style.pointerEvents = 'none';
-    
-    // Create groups for different types of elements to control layering
-    const linesGroup = document.createElementNS(ns, 'g');
-    const endpointsGroup = document.createElementNS(ns, 'g');
-    const deleteButtonsGroup = document.createElementNS(ns, 'g');
-    
-    // Add groups to SVG in order (bottom to top)
-    svgCanvas.appendChild(linesGroup);
-    svgCanvas.appendChild(endpointsGroup);
-    svgCanvas.appendChild(deleteButtonsGroup); // Delete buttons on top
-    
-    Object.keys(schemas).forEach(schemaName => {
-        const schema = schemas[schemaName];
-        
-        Object.keys(schema.tables).forEach(tableName => {
-			// Skip if this table is filtered out
-            if (!TableFilter.isTableVisible(schemaName, tableName)) {
-                return;
-            }
+	function renderRelations() {
+		// Clear existing SVG content
+		svgCanvas.innerHTML = '';
+		
+		// Create SVG namespace elements
+		const ns = "http://www.w3.org/2000/svg";
+		
+		// Make SVG canvas visible and ensure it spans the entire workspace
+		svgCanvas.style.pointerEvents = 'none';
+		
+		// Create groups for different types of elements to control layering
+		const linesGroup = document.createElementNS(ns, 'g');
+		const endpointsGroup = document.createElementNS(ns, 'g');
+		const deleteButtonsGroup = document.createElementNS(ns, 'g');
+		
+		// Add groups to SVG in order (bottom to top)
+		svgCanvas.appendChild(linesGroup);
+		svgCanvas.appendChild(endpointsGroup);
+		svgCanvas.appendChild(deleteButtonsGroup); // Delete buttons on top
+		
+		Object.keys(schemas).forEach(schemaName => {
+			const schema = schemas[schemaName];
 			
-            const table = schema.tables[tableName];
-            
-            table.relations.forEach(relation => {
-                const fromKey = `${relation.from.schema}.${relation.from.table}`;
-                const toKey = `${relation.to.schema}.${relation.to.table}`;
+			Object.keys(schema.tables).forEach(tableName => {
+				// Skip if this table is filtered out
+				if (!TableFilter.isTableVisible(schemaName, tableName)) {
+					return;
+				}
 				
-				// Skip if either source or target table is filtered out
-                if (!TableFilter.isTableVisible(relation.from.schema, relation.from.table) || 
-                    !TableFilter.isTableVisible(relation.to.schema, relation.to.table)) {
-                    return;
-                }
-                
-                if (tablePositions[fromKey] && tablePositions[toKey]) {
-                    const fromTableElem = document.getElementById(`table-${relation.from.schema}-${relation.from.table}`);
-                    const toTableElem = document.getElementById(`table-${relation.to.schema}-${relation.to.table}`);
-                    
-                    if (fromTableElem && toTableElem) {
-                        const fromColumnElem = document.getElementById(`col-${relation.from.schema}-${relation.from.table}-${relation.from.column}`);
-                        const toColumnElem = document.getElementById(`col-${relation.to.schema}-${relation.to.table}-${relation.to.column}`);
-                        
-                        if (fromColumnElem && toColumnElem) {
-                            // Get positions for the columns
-                            const fromRect = fromColumnElem.getBoundingClientRect();
-                            const toRect = toColumnElem.getBoundingClientRect();
-                            const workspaceRect = workspace.getBoundingClientRect();
-                            
-                            // Calculate start and end points relative to the workspace
-                            const fromX = fromRect.right - workspaceRect.left;
-                            const fromY = fromRect.top - workspaceRect.top + (fromRect.height / 2);
-                            const toX = toRect.left - workspaceRect.left;
-                            const toY = toRect.top - workspaceRect.top + (toRect.height / 2);
-                            
-                            // Create relation line (add to lines group)
-                            const line = document.createElementNS(ns, 'line');
-                            line.setAttribute('x1', fromX);
-                            line.setAttribute('y1', fromY);
-                            line.setAttribute('x2', toX);
-                            line.setAttribute('y2', toY);
-                            line.setAttribute('stroke', '#3498db');
-                            line.setAttribute('stroke-width', '2');
-                            linesGroup.appendChild(line);
-                            
-                            // Create circles at endpoints (add to endpoints group)
-                            const fromCircle = document.createElementNS(ns, 'circle');
-                            fromCircle.setAttribute('cx', fromX);
-                            fromCircle.setAttribute('cy', fromY);
-                            fromCircle.setAttribute('r', '3');
-                            fromCircle.setAttribute('fill', '#3498db');
-                            endpointsGroup.appendChild(fromCircle);
-                            
-                            const toCircle = document.createElementNS(ns, 'circle');
-                            toCircle.setAttribute('cx', toX);
-                            toCircle.setAttribute('cy', toY);
-                            toCircle.setAttribute('r', '3');
-                            toCircle.setAttribute('fill', '#3498db');
-                            endpointsGroup.appendChild(toCircle);
-                            
-                            // Create delete button in the middle (add to delete buttons group)
-                            const midX = (fromX + toX) / 2;
-                            const midY = (fromY + toY) / 2;
-                            
-                            const deleteButton = document.createElementNS(ns, 'g');
-                            deleteButton.classList.add('relation-delete');
-                            deleteButton.setAttribute('transform', `translate(${midX}, ${midY})`);
-                            
-                            // Making it properly clickable
-                            deleteButton.style.pointerEvents = 'all';
-                            deleteButton.style.cursor = 'pointer';
-                            
-                            // Store relation data for deletion
-                            const relationData = JSON.stringify({
-                                from: relation.from,
-                                to: relation.to
-                            });
-                            deleteButton.setAttribute('data-relation', relationData);
-                            
-                            deleteButton.addEventListener('click', function(e) {
-                                e.stopPropagation(); // Prevent event bubbling
-                                const data = JSON.parse(this.getAttribute('data-relation'));
-                                removeRelation(data.from, data.to);
-                            });
-                            
-                            const buttonCircle = document.createElementNS(ns, 'circle');
-                            buttonCircle.setAttribute('r', '10');
-                            buttonCircle.setAttribute('fill', 'white');
-                            buttonCircle.setAttribute('stroke', '#e74c3c');
-                            deleteButton.appendChild(buttonCircle);
-                            
-                            // Create X icon
-                            const xLine1 = document.createElementNS(ns, 'line');
-                            xLine1.setAttribute('x1', -5);
-                            xLine1.setAttribute('y1', -5);
-                            xLine1.setAttribute('x2', 5);
-                            xLine1.setAttribute('y2', 5);
-                            xLine1.setAttribute('stroke', '#e74c3c');
-                            xLine1.setAttribute('stroke-width', '2');
-                            deleteButton.appendChild(xLine1);
-                            
-                            const xLine2 = document.createElementNS(ns, 'line');
-                            xLine2.setAttribute('x1', 5);
-                            xLine2.setAttribute('y1', -5);
-                            xLine2.setAttribute('x2', -5);
-                            xLine2.setAttribute('y2', 5);
-                            xLine2.setAttribute('stroke', '#e74c3c');
-                            xLine2.setAttribute('stroke-width', '2');
-                            deleteButton.appendChild(xLine2);
-                            
-                            // Add the delete button to the top-most group
-                            deleteButtonsGroup.appendChild(deleteButton);
-                        }
-                    }
-                }
-            });
-        });
-    });
-}
+				const table = schema.tables[tableName];
+				
+				table.relations.forEach(relation => {
+					const fromKey = `${relation.from.schema}.${relation.from.table}`;
+					const toKey = `${relation.to.schema}.${relation.to.table}`;
+					
+					// Skip if either source or target table is filtered out
+					if (!TableFilter.isTableVisible(relation.from.schema, relation.from.table) || 
+						!TableFilter.isTableVisible(relation.to.schema, relation.to.table)) {
+						return;
+					}
+					
+					if (tablePositions[fromKey] && tablePositions[toKey]) {
+						const fromTableElem = document.getElementById(`table-${relation.from.schema}-${relation.from.table}`);
+						const toTableElem = document.getElementById(`table-${relation.to.schema}-${relation.to.table}`);
+						
+						if (fromTableElem && toTableElem) {
+							const fromColumnElem = document.getElementById(`col-${relation.from.schema}-${relation.from.table}-${relation.from.column}`);
+							const toColumnElem = document.getElementById(`col-${relation.to.schema}-${relation.to.table}-${relation.to.column}`);
+							
+							if (fromColumnElem && toColumnElem) {
+								// Get positions for the columns
+								const fromRect = fromColumnElem.getBoundingClientRect();
+								const toRect = toColumnElem.getBoundingClientRect();
+								const workspaceRect = workspace.getBoundingClientRect();
+								
+								// Calculate start and end points relative to the workspace
+								const fromX = fromRect.right - workspaceRect.left;
+								const fromY = fromRect.top - workspaceRect.top + (fromRect.height / 2);
+								const toX = toRect.left - workspaceRect.left;
+								const toY = toRect.top - workspaceRect.top + (toRect.height / 2);
+								
+								// Create relation line (add to lines group)
+								const line = document.createElementNS(ns, 'line');
+								line.setAttribute('x1', fromX);
+								line.setAttribute('y1', fromY);
+								line.setAttribute('x2', toX);
+								line.setAttribute('y2', toY);
+								line.setAttribute('stroke', '#3498db');
+								line.setAttribute('stroke-width', '2');
+								linesGroup.appendChild(line);
+								
+								// Create circles at endpoints (add to endpoints group)
+								const fromCircle = document.createElementNS(ns, 'circle');
+								fromCircle.setAttribute('cx', fromX);
+								fromCircle.setAttribute('cy', fromY);
+								fromCircle.setAttribute('r', '3');
+								fromCircle.setAttribute('fill', '#3498db');
+								endpointsGroup.appendChild(fromCircle);
+								
+								const toCircle = document.createElementNS(ns, 'circle');
+								toCircle.setAttribute('cx', toX);
+								toCircle.setAttribute('cy', toY);
+								toCircle.setAttribute('r', '3');
+								toCircle.setAttribute('fill', '#3498db');
+								endpointsGroup.appendChild(toCircle);
+								
+								// Create delete button in the middle (add to delete buttons group)
+								const midX = (fromX + toX) / 2;
+								const midY = (fromY + toY) / 2;
+								
+								const deleteButton = document.createElementNS(ns, 'g');
+								deleteButton.classList.add('relation-delete');
+								deleteButton.setAttribute('transform', `translate(${midX}, ${midY})`);
+								
+								// Making it properly clickable
+								deleteButton.style.pointerEvents = 'all';
+								deleteButton.style.cursor = 'pointer';
+								
+								// Store relation data for deletion
+								const relationData = JSON.stringify({
+									from: relation.from,
+									to: relation.to
+								});
+								deleteButton.setAttribute('data-relation', relationData);
+								
+								deleteButton.addEventListener('click', function(e) {
+									e.stopPropagation(); // Prevent event bubbling
+									const data = JSON.parse(this.getAttribute('data-relation'));
+									removeRelation(data.from, data.to);
+								});
+								
+								const buttonCircle = document.createElementNS(ns, 'circle');
+								buttonCircle.setAttribute('r', '10');
+								buttonCircle.setAttribute('fill', 'white');
+								buttonCircle.setAttribute('stroke', '#e74c3c');
+								deleteButton.appendChild(buttonCircle);
+								
+								// Create X icon
+								const xLine1 = document.createElementNS(ns, 'line');
+								xLine1.setAttribute('x1', -5);
+								xLine1.setAttribute('y1', -5);
+								xLine1.setAttribute('x2', 5);
+								xLine1.setAttribute('y2', 5);
+								xLine1.setAttribute('stroke', '#e74c3c');
+								xLine1.setAttribute('stroke-width', '2');
+								deleteButton.appendChild(xLine1);
+								
+								const xLine2 = document.createElementNS(ns, 'line');
+								xLine2.setAttribute('x1', 5);
+								xLine2.setAttribute('y1', -5);
+								xLine2.setAttribute('x2', -5);
+								xLine2.setAttribute('y2', 5);
+								xLine2.setAttribute('stroke', '#e74c3c');
+								xLine2.setAttribute('stroke-width', '2');
+								deleteButton.appendChild(xLine2);
+								
+								// Add the delete button to the top-most group
+								deleteButtonsGroup.appendChild(deleteButton);
+							}
+						}
+					}
+				});
+			});
+		});
+	}
     
     function handleDragStart(e, schema, table) {
         e.preventDefault();
