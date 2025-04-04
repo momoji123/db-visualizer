@@ -82,21 +82,23 @@ const TableFilter = (function() {
     
     // Apply the selected filters
     function applyFilters() {
-        // Clear the current set
-        visibleTables.clear();
-        
-        // Get all checked tables
-        const checkboxes = tableListContainer.querySelectorAll('input[type="checkbox"]');
-        checkboxes.forEach(checkbox => {
-            if (checkbox.checked) {
-                visibleTables.add(checkbox.value);
-            }
-        });
-        
-        // Close the sidebar
-        closeSidebar();
-        
-        // Find and trigger the renderVisualization function from the main script
+        // Get all displayed checkboxes
+		const displayedCheckboxes = tableListContainer.querySelectorAll('input[type="checkbox"]');
+		
+		// Update visible tables only for the checkboxes that are currently displayed
+		displayedCheckboxes.forEach(checkbox => {
+			const key = checkbox.value;
+			if (checkbox.checked) {
+				visibleTables.add(key);
+			} else {
+				visibleTables.delete(key);
+			}
+		});
+		
+		// Close the sidebar
+		closeSidebar();
+		
+		// Find and trigger the renderVisualization function from the main script
 		if (typeof renderVisualization === 'function') {
 			renderVisualization();
 		} else {
