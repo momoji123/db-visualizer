@@ -217,28 +217,32 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Only draw schema if we have tables with positions
             if (hasPositions) {
-                const width = maxX - minX;
-                const height = maxY - minY;
-                
-                // Create schema area
-                const schemaArea = document.createElement('div');
-                schemaArea.className = 'schema-area';
-                schemaArea.style.left = `${minX}px`;
-                schemaArea.style.top = `${minY}px`;
-                schemaArea.style.width = `${width}px`;
-                schemaArea.style.height = `${height}px`;
-                
-                // Create schema title inside the schema area
-                const schemaTitle = document.createElement('div');
-                schemaTitle.className = 'schema-title';
-                schemaTitle.textContent = schemaName;
-                schemaTitle.style.position = 'absolute';
-                schemaTitle.style.top = '10px';
-                schemaTitle.style.left = '20px';
-                
-                // Append title to schema area, not directly to tablesContainer
-                schemaArea.appendChild(schemaTitle);
-                tablesContainer.appendChild(schemaArea);
+                // Add more margin to prevent tables from overlapping schema boundaries
+				const marginX = 40; // Increased horizontal margin
+				const marginY = 50; // Increased vertical margin
+				
+				const width = maxX - minX + marginX * 2;
+				const height = maxY - minY + marginY * 2;
+				
+				// Create schema area with adjusted position to account for margins
+				const schemaArea = document.createElement('div');
+				schemaArea.className = 'schema-area';
+				schemaArea.style.left = `${minX - marginX}px`;
+				schemaArea.style.top = `${minY - marginY}px`;
+				schemaArea.style.width = `${width}px`;
+				schemaArea.style.height = `${height}px`;
+				
+				// Create schema title inside the schema area
+				const schemaTitle = document.createElement('div');
+				schemaTitle.className = 'schema-title';
+				schemaTitle.textContent = schemaName;
+				schemaTitle.style.position = 'absolute';
+				schemaTitle.style.top = '10px';
+				schemaTitle.style.left = '20px';
+				
+				// Append title to schema area, not directly to tablesContainer
+				schemaArea.appendChild(schemaTitle);
+				tablesContainer.appendChild(schemaArea);
             }
         });
     }
