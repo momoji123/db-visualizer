@@ -6,6 +6,10 @@ export const state = {
     isDragging: false,
     draggedTable: null,
     dragOffset: { x: 0, y: 0 },
+	isSchemaDragging: false,
+    draggedSchemaName: null,
+    schemaDragOffset: { x: 0, y: 0 },
+    initialTablePositionsForSchemaDrag: {},
     tablePositions: {},
     lastScrollLeft: 0,
     lastScrollTop: 0,
@@ -27,7 +31,21 @@ export function updateTablePosition(key, pos) {
     state.tablePositions[key] = pos;
 }
 
+export function setSchemaDragging(isDragging, schemaName = null, offset = { x: 0, y: 0 }) {
+    state.isSchemaDragging = isDragging;
+    state.draggedSchemaName = schemaName;
+    state.schemaDragOffset = offset;
+    if (!isDragging) {
+        state.initialTablePositionsForSchemaDrag = {}; // Clear initial positions when drag ends
+    }
+}
+
+export function storeInitialPositionsForSchemaDrag(positions) {
+    state.initialTablePositionsForSchemaDrag = positions;
+}
+
 export function setDragging(isDragging, table = null, offset = { x: 0, y: 0 }) {
+    if (isDragging && state.isSchemaDragging) return; // Don't allow table drag if schema drag is active
     state.isDragging = isDragging;
     state.draggedTable = table;
     state.dragOffset = offset;

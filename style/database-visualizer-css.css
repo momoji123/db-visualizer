@@ -133,9 +133,22 @@ body {
     border: 2px solid #bdc3c7;
     border-radius: 20px;
     z-index: 1;
+	padding: 40px 20px 20px 20px;
+    cursor: move;
+     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+     transition: box-shadow 0.2s ease-in-out;
+}
+
+.schema-area.dragging {
+     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+     border-color: #3498db; /* Highlight border */
+     /* Add any other visual feedback */
 }
 
 .schema-title {
+	position: absolute;
+    top: 15px;
+    left: 25px;
     font-weight: bold;
     color: #34495e;
     z-index: 2;
@@ -151,6 +164,12 @@ body {
     overflow: hidden;
     z-index: 3;
     min-width: 200px;
+}
+
+.table.dragging {
+     opacity: 0.8;
+     box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+     z-index: 10; /* Bring table to top while dragging */
 }
 
 .table-header {

@@ -1,7 +1,7 @@
 // scripts/renderer.js
 import * as DOM from './domElements.js';
 import { state, saveScrollPosition } from './state.js';
-import { handleDragStart } from './dragDrop.js';
+import { handleDragStart, handleSchemaDragStart } from './dragDrop.js';
 import { handleColumnClick } from './eventListeners.js'; // Changed from relationManager
 import { removeRelation } from './relationManager.js';
 // Assuming TableFilter is global or imported
@@ -54,6 +54,15 @@ function renderSchemas() {
              schemaArea.style.width = `${width}px`;
              schemaArea.style.height = `${height}px`;
              schemaArea.dataset.schema = schemaName; // Add data attribute for identification
+			 
+			// <-- Add MouseDown Listener for Schema Dragging -->
+			schemaArea.addEventListener('mousedown', (e) => {
+                // Only trigger schema drag if clicking directly on the schema area,
+                // not on a table element that might be inside its bounds visually.
+                if (e.target === schemaArea) {
+                     handleSchemaDragStart(e, schemaName);
+                }
+            });
 
             // Create schema title inside the schema area
             const schemaTitle = document.createElement('div');

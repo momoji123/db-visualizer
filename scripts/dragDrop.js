@@ -1,9 +1,17 @@
 // scripts/dragDrop.js
 import * as DOM from './domElements.js';
-import { state, setDragging, updateTablePosition } from './state.js';
+import { state, setDragging, updateTablePosition, setSchemaDragging, storeInitialPositionsForSchemaDrag } from './state.js';
 import { renderVisualization, renderRelations } from './renderer.js'; // Import renderRelations too
 
 export function handleDragStart(e, schema, table) {
+	// Prevent initiating table drag if a schema drag is already active or starting on the schema area
+    if (state.isSchemaDragging || e.target.classList.contains('schema-area')) {
+         e.stopPropagation(); // Stop the event from bubbling further
+        return;
+    }
+    // Ensure we are clicking the header, not the column or table background
+    if (!e.target.classList.contains('table-header')) return;
+	
     e.preventDefault();
      // Ensure we are clicking the header, not the column or table background
      if (!e.target.classList.contains('table-header')) return;
@@ -38,70 +46,163 @@ export function handleDragStart(e, schema, table) {
 }
 
 export function handleDrag(e) {
-    if (!state.isDragging || !state.draggedTable) return;
+    if (state.isDragging && state.draggedTable) {
+        // --- Existing Table Drag Logic ---
+        e.preventDefault();
+        const { schema, table } = state.draggedTable;
+        const key = `${schema}.${table}`;
+        const tableElem = document.getElementById(`table-${schema}-${table}`);
+        if (!tableElem) return;
+        const workspaceRect = DOM.workspace.getBoundingClientRect();
 
-    e.preventDefault(); // Prevent text selection during drag
+        let newX = e.clientX - workspaceRect.left - state.dragOffset.x + DOM.workspace.scrollLeft;
+        let newY = e.clientY - workspaceRect.top - state.dragOffset.y + DOM.workspace.scrollTop;
 
-    const { schema, table } = state.draggedTable;
-    const key = `${schema}.${table}`;
-    const tableElem = document.getElementById(`table-${schema}-${table}`);
-    if (!tableElem) return; // Should not happen if drag started correctly
+        updateTablePosition(key, { x: newX, y: newY });
+        tableElem.style.left = `${newX}px`;
+        tableElem.style.top = `${newY}px`;
 
-     const workspaceRect = DOM.workspace.getBoundingClientRect();
+        renderRelations(); // Update relations during table drag
+
+    } else if (state.isSchemaDragging && state.draggedSchemaName) {
+        // --- New Schema Drag Logic ---
+        e.preventDefault();
+        const schemaName = state.draggedSchemaName;
+        const schemaAreaElem = DOM.tablesContainer.querySelector(`.schema-area[data-schema="${schemaName}"]`);
+        if (!schemaAreaElem) return;
+
+        const workspaceRect = DOM.workspace.getBoundingClientRect();
+
+        // Calculate the current mouse position relative to the workspace container
+        const currentX = e.clientX - workspaceRect.left + DOM.workspace.scrollLeft;
+        const currentY = e.clientY - workspaceRect.top + DOM.workspace.scrollTop;
+
+        // Calculate the delta move from the drag start
+        const deltaX = currentX - state.schemaDragOffset.startX;
+        const deltaY = currentY - state.schemaDragOffset.startY;
+
+        // Move the schema area visually
+        const newSchemaX = state.schemaDragOffset.initialSchemaX + deltaX;
+        const newSchemaY = state.schemaDragOffset.initialSchemaY + deltaY;
+        schemaAreaElem.style.left = `${newSchemaX}px`;
+        schemaAreaElem.style.top = `${newSchemaY}px`;
 
 
-    // Calculate new raw position based on mouse movement and offset
-     let newX = e.clientX - workspaceRect.left - state.dragOffset.x;
-     let newY = e.clientY - workspaceRect.top - state.dragOffset.y;
+        // Move associated tables
+        Object.keys(state.initialTablePositionsForSchemaDrag).forEach(key => {
+            const tableElem = document.getElementById(`table-${key.replace('.', '-')}`);
+            if (tableElem && state.schemas[schemaName]?.tables[key.split('.')[1]]) { // Check if table belongs to the schema being dragged
+                const initialPos = state.initialTablePositionsForSchemaDrag[key];
+                const newTableX = initialPos.x + deltaX;
+                const newTableY = initialPos.y + deltaY;
 
+                // Update state and element style
+                updateTablePosition(key, { x: newTableX, y: newTableY });
+                tableElem.style.left = `${newTableX}px`;
+                tableElem.style.top = `${newTableY}px`;
+            }
+        });
 
-     // Add scroll position to get position relative to the tablesContainer
-     newX += DOM.workspace.scrollLeft;
-     newY += DOM.workspace.scrollTop;
-
-
-     // Optional: Constrain dragging within workspace boundaries (or add checks)
-     // newX = Math.max(0, Math.min(newX, parseInt(DOM.tablesContainer.style.width) - tableElem.offsetWidth));
-     // newY = Math.max(0, Math.min(newY, parseInt(DOM.tablesContainer.style.height) - tableElem.offsetHeight));
-
-
-    // Update position in state
-    updateTablePosition(key, { x: newX, y: newY });
-
-    // Update table element's style directly for immediate feedback
-    tableElem.style.left = `${newX}px`;
-    tableElem.style.top = `${newY}px`;
-
-    // Update relations dynamically without full re-render for performance
-     renderRelations(); // Re-render only the SVG relations
+        renderRelations(); // Update relations during schema drag
+    }
 }
 
 export function handleDragEnd(e) {
-     if (!state.isDragging) return; // Only act if currently dragging
+    const wasTableDragging = state.isDragging;
+    const wasSchemaDragging = state.isSchemaDragging;
+
+    if (wasTableDragging) {
+        const { schema, table } = state.draggedTable || {};
+        setDragging(false); // Reset table dragging state
+        document.body.style.cursor = 'default';
+        if (schema && table) {
+            const tableElem = document.getElementById(`table-${schema}-${table}`);
+            if (tableElem) {
+                tableElem.classList.remove('dragging');
+            }
+        }
+    }
+
+    if (wasSchemaDragging) {
+        const schemaName = state.draggedSchemaName;
+         setSchemaDragging(false); // Reset schema dragging state
+         document.body.style.cursor = 'default';
+        if (schemaName) {
+            const schemaAreaElem = DOM.tablesContainer.querySelector(`.schema-area[data-schema="${schemaName}"]`);
+            if (schemaAreaElem) {
+                schemaAreaElem.classList.remove('dragging'); // Remove dragging class if you add one
+            }
+        }
+    }
 
 
-     const { schema, table } = state.draggedTable; // Get info before resetting
+    if (wasTableDragging || wasSchemaDragging) {
+        // Remove document-level listeners only if a drag was in progress
+        document.removeEventListener('mousemove', handleDrag);
+        document.removeEventListener('mouseup', handleDragEnd);
+        document.removeEventListener('mouseleave', handleDragEnd); // Ensure this is removed too
+
+        // Perform a full re-render to update schema boundaries etc. correctly after any drag
+        renderVisualization();
+    }
+}
+
+export function handleSchemaDragStart(e, schemaName) {
+     // Prevent drag if a table drag is somehow active
+     if (state.isDragging) return;
+
+    e.preventDefault();
+    e.stopPropagation(); // Prevent triggering table drag if header is overlapped
+
+    const schemaAreaElem = e.currentTarget; // The schema area div
+    const workspaceRect = DOM.workspace.getBoundingClientRect();
+
+     // Calculate initial mouse position relative to the workspace, including scroll
+     const startX = e.clientX - workspaceRect.left + DOM.workspace.scrollLeft;
+     const startY = e.clientY - workspaceRect.top + DOM.workspace.scrollTop;
+
+    // Store initial offset and schema position
+    const schemaRect = schemaAreaElem.getBoundingClientRect();
+    const initialSchemaX = parseFloat(schemaAreaElem.style.left) || 0;
+    const initialSchemaY = parseFloat(schemaAreaElem.style.top) || 0;
 
 
-    // Clean up
-    setDragging(false); // Reset dragging state
-    document.body.style.cursor = 'default';
+    const schemaDragOffset = {
+         startX: startX, // Store initial mouse X relative to workspace
+         startY: startY, // Store initial mouse Y relative to workspace
+         initialSchemaX: initialSchemaX, // Store initial schema X
+         initialSchemaY: initialSchemaY // Store initial schema Y
+    };
 
 
-     // Remove dragging class if added
-     const tableElem = document.getElementById(`table-${schema}-${table}`);
-     if (tableElem) {
-         tableElem.classList.remove('dragging');
-     }
+    // Store initial positions of all tables within this schema
+    const initialTablePositions = {};
+     if (state.schemas[schemaName]) {
+        Object.keys(state.schemas[schemaName].tables).forEach(tableName => {
+            const key = `${schemaName}.${tableName}`;
+            if (state.tablePositions[key]) {
+                // Store a copy, not a reference
+                 initialTablePositions[key] = { ...state.tablePositions[key] };
+            } else {
+                 // Fallback if position somehow missing (shouldn't normally happen)
+                 const tableElem = document.getElementById(`table-${key.replace('.', '-')}`);
+                 if(tableElem){
+                      initialTablePositions[key] = { x: parseFloat(tableElem.style.left) || 0, y: parseFloat(tableElem.style.top) || 0 };
+                 } else {
+                      initialTablePositions[key] = { x: 0, y: 0 };
+                 }
+            }
+        });
+    }
+    storeInitialPositionsForSchemaDrag(initialTablePositions); // Update state
 
+    setSchemaDragging(true, schemaName, schemaDragOffset); // Set schema dragging state
 
-     // Remove document-level listeners
-     document.removeEventListener('mousemove', handleDrag);
-     document.removeEventListener('mouseup', handleDragEnd);
-     document.removeEventListener('mouseleave', handleDragEnd);
+    document.body.style.cursor = 'move';
+    schemaAreaElem.classList.add('dragging'); // Optional: Add visual feedback
 
-
-    // Perform a full re-render to update schema boundaries correctly
-    // This is important if schema areas depend on table positions.
-    renderVisualization();
+    // Add listeners to document for moving and stopping
+    document.addEventListener('mousemove', handleDrag);
+    document.addEventListener('mouseup', handleDragEnd);
+    document.addEventListener('mouseleave', handleDragEnd); // Handle mouse leaving window
 }
