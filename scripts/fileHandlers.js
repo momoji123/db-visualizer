@@ -23,8 +23,12 @@ export function handleFileUpload(event) {
                         schema: values[0] || '',
                         table_name: values[1] || '',
                         column_name: values[2] || '',
-                        relation_table_name: values[3] || '',
-                        relation_column_name: values[4] || ''
+                        relation_schema: values[3] || '',
+                        relation_table_name: values[4] || '',
+                        relation_column_name: values[5] || '',
+                        pos_x: parseFloat(values[6]) || 0, // Parse as float, default to 0
+                        pos_y: parseFloat(values[7]) || 0, // Parse as float, default to 0
+                        pos_z: parseInt(values[8]) || state.minTableZIndex  // Parse as int, default to 0
                     };
                 });
 
@@ -38,10 +42,14 @@ export function handleFileUpload(event) {
 
 export function handleExport() {
     const csvContent =
-        "schema;table_name;column_name;relation_table_name;relation_column_name\n" +
-        state.data.map(row =>
-            `${row.schema};${row.table_name};${row.column_name};${row.relation_table_name || ''};${row.relation_column_name || ''}`
-        ).join('\n');
+        "schema;table_name;column_name;relation_schema;relation_table_name;relation_column_name;pos_x;pos_y;pos_z\n" +
+        state.data.map(row => {
+            // Retrieve x, y, z from tablePositions
+            const key = `${row.schema}.${row.table_name}`;
+            const pos = state.tablePositions[key] || { x: 0, y: 0, z: state.minTableZIndex }; // Default position
+
+            return `${row.schema};${row.table_name};${row.column_name};${row.relation_schema || ''};${row.relation_table_name || ''};${row.relation_column_name || ''};${pos.x};${pos.y};${pos.z}`;
+        }).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);

@@ -16,8 +16,6 @@ export function processData() {
         if (!newSchemas[schema]) {
             newSchemas[schema] = {
                 tables: {},
-                // Initial schema position (might not be needed if using bounding box)
-                // position: { x: Math.random() * 300, y: Math.random() * 300 }
             };
         }
 
@@ -25,7 +23,6 @@ export function processData() {
             newSchemas[schema].tables[table_name] = {
                 columns: [],
                 relations: []
-                // Position is handled in tablePositions
             };
         }
 
@@ -37,61 +34,49 @@ export function processData() {
 
     // Second pass: add relations
     state.data.forEach(row => {
-        const { schema, table_name, column_name, relation_table_name, relation_column_name } = row;
+        const { schema, table_name, column_name, relation_schema, relation_table_name, relation_column_name, pos_x, pos_y, pos_z } = row;
 
         if (relation_table_name && relation_column_name) {
-            // Find which schema contains the related table
-            let relationSchemaName = null;
-            Object.keys(newSchemas).forEach(s => {
-                if (newSchemas[s].tables[relation_table_name]) {
-                    relationSchemaName = s;
-                }
-            });
+            const targetSchema = relation_schema || Object.keys(newSchemas).find(s => newSchemas[s].tables[relation_table_name]);
 
-            if (relationSchemaName && newSchemas[schema]?.tables[table_name]) {
-                 newSchemas[schema].tables[table_name].relations.push({
+            if (targetSchema && newSchemas[schema]?.tables[table_name]) {
+                newSchemas[schema].tables[table_name].relations.push({
                     from: { schema, table: table_name, column: column_name },
-                    to: { schema: relationSchemaName, table: relation_table_name, column: relation_column_name }
+                    to: { schema: targetSchema, table: relation_table_name, column: relation_column_name }
                 });
             }
         }
+
+        // Initialize table positions from CSV data
+        const key = `${schema}.${table_name}`;
+        if (pos_x !== undefined && pos_y !== undefined && pos_z !== undefined) {
+            newTablePositions[key] = { x: pos_x, y: pos_y, z: pos_z };
+        } else if (!state.tablePositions[key]) {
+            // Arrange tables initially if not positioned
+            const radius = 200 + Math.random() * 50;
+            const angle = (2 * Math.PI * Object.keys(newSchemas[schema].tables).indexOf(table_name)) / Object.keys(newSchemas[schema].tables).length + Math.random() * 0.5;
+            const schemaIndex = Object.keys(newSchemas).indexOf(schema);
+            const schemaOffsetX = schemaIndex * 600;
+
+            newTablePositions[key] = {
+                x: 300 + schemaOffsetX + radius * Math.cos(angle),
+                y: 300 + radius * Math.sin(angle),
+                z: state.minTableZIndex //Default Z-index
+            };
+        } else {
+            // Keep existing position
+            newTablePositions[key] = state.tablePositions[key];
+        }
     });
-
-     // Initialize table positions if they don't exist
-    Object.keys(newSchemas).forEach(schema => {
-        const tableNames = Object.keys(newSchemas[schema].tables);
-        const tableCount = tableNames.length;
-
-        tableNames.forEach((table, index) => {
-            const key = `${schema}.${table}`;
-            if (!state.tablePositions[key]) { // Check if position already exists (e.g., from previous state or manual drag)
-                 // Arrange tables initially if not positioned
-                 const radius = 200 + Math.random() * 50; // Add some randomness
-                 const angle = (2 * Math.PI * index) / tableCount + Math.random() * 0.5; // Add some jitter
-                 const schemaIndex = Object.keys(newSchemas).indexOf(schema);
-                 const schemaOffsetX = schemaIndex * 600; // Spread schemas horizontally
-
-                 newTablePositions[key] = {
-                    x: 300 + schemaOffsetX + radius * Math.cos(angle),
-                    y: 300 + radius * Math.sin(angle)
-                };
-            } else {
-                 // Keep existing position
-                 newTablePositions[key] = state.tablePositions[key];
-            }
-        });
-    });
-
 
     // Update state
     setSchemas(newSchemas);
     setTablePositions(newTablePositions); // Use combined new/existing positions
 
     // Update filter list (assuming TableFilter is accessible)
-     if (window.TableFilter && typeof window.TableFilter.updateTableList === 'function') {
+    if (window.TableFilter && typeof window.TableFilter.updateTableList === 'function') {
         window.TableFilter.updateTableList(newSchemas);
     }
-
 
     // Initial render and status update
     renderVisualization();
