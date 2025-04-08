@@ -13,27 +13,35 @@ export const state = {
     tablePositions: {},
     lastScrollLeft: 0,
     lastScrollTop: 0,
-	nextTableZIndex: 3, // Initial base z-index for tables
+	minTableZIndex: 3, // Initial base z-index for tables
+    maxTableZIndex:null
 };
 
-/**
- * Gets the next available z-index for a table and increments the counter.
- * Caps the z-index to avoid overlapping critical UI elements like the sidebar.
- * @returns {number} The next z-index to use.
- */
-export function getNextTableZIndex() {
-    const currentIndex = state.nextTableZIndex;
-    // Increment but cap below sidebar (z-index: 100). Cap at 90 for safety.
-    state.nextTableZIndex = Math.min(currentIndex + 1, 90);
-    return currentIndex;
+export function getMaxTableZIndex(){
+    if (state.maxTableZIndex === null) {
+        // Calculate max z-index only if it's not cached
+        let maxZ = state.minTableZIndex;
+        maxZ = state.minTableZIndex + Object.keys(state.tablePositions).length;
+        state.maxTableZIndex = maxZ;
+    }
+    return state.maxTableZIndex;
 }
 
-/**
- * Resets the z-index counter, e.g., when loading new data.
- * @param {number} [base=3] - The base z-index to start from.
- */
-export function resetNextTableZIndex(base = 3) {
-    state.nextTableZIndex = base;
+export function updateTableZPositionToTop(key){
+    const currentZ = state.tablePositions[key]?.z || state.minTableZIndex; // Get current z or default
+    const newMaxZ = getMaxTableZIndex(); // Calculate new max z-index
+
+    // Shift existing tables' z-indices down if they were above the moved table
+    Object.keys(state.tablePositions).forEach(otherKey => {
+        if (otherKey !== key && state.tablePositions[otherKey].z > currentZ) {
+            state.tablePositions[otherKey].z -= 1;
+        }
+    });
+
+    // Update the dragged table's z-index to the new maximum
+    if (state.tablePositions[key]) {
+        state.tablePositions[key].z = newMaxZ;
+    }
 }
 
 export function setData(newData) {

@@ -1,6 +1,6 @@
 // scripts/dragDrop.js
 import * as DOM from './domElements.js';
-import { state, setDragging, updateTablePosition, setSchemaDragging, storeInitialPositionsForSchemaDrag, getNextTableZIndex } from './state.js';
+import { state, setDragging, updateTablePosition, setSchemaDragging, storeInitialPositionsForSchemaDrag, getMaxTableZIndex, updateTableZPositionToTop } from './state.js';
 import { renderVisualization, renderRelations } from './renderer.js'; // Import renderRelations too
 
 export function handleDragStart(e, schema, table) {
@@ -21,9 +21,9 @@ export function handleDragStart(e, schema, table) {
 
 	
     // Get the next available z-index and apply it to the clicked/dragged table
-    const newZIndex = getNextTableZIndex();
-	state.tablePositions[`${schema}.${table}`].z = newZIndex;
-    tableElement.style.zIndex = newZIndex;
+    const key = `${schema}.${table}`;
+    updateTableZPositionToTop(key)
+    tableElement.style.zIndex = state.tablePositions[key].z;
     // --- End Z-Index Handling ---
 
     const rect = tableElement.getBoundingClientRect(); // Use table element for rect
