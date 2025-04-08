@@ -465,29 +465,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function handleDrag(e) {
         if (isDragging && draggedTable) {
-            const { schema, table } = draggedTable;
-            const key = `${schema}.${table}`;
-            
-            const tableElem = document.getElementById(`table-${schema}-${table}`);
-            if (!tableElem) return;
-            
-            const workspaceRect = workspace.getBoundingClientRect();
-            const newX = e.clientX - workspaceRect.left - dragOffset.x;
-            const newY = e.clientY - workspaceRect.top - dragOffset.y;
-            
-            // Update position
-            tablePositions[key] = {
-                x: newX,
-                y: newY
-            };
-            
-            // Update table position
-            tableElem.style.left = `${newX}px`;
-            tableElem.style.top = `${newY}px`;
-            
-            // Update relations without full re-render for better performance
-            renderRelations(); // This now clears the SVG before rendering new relations
-        }
+			const { schema, table } = draggedTable;
+			const key = `${schema}.${table}`;
+			
+			const tableElem = document.getElementById(`table-${schema}-${table}`);
+			if (!tableElem) return;
+			
+			const workspaceRect = workspace.getBoundingClientRect();
+			const newX = e.clientX - workspaceRect.left - dragOffset.x;
+			const newY = e.clientY - workspaceRect.top - dragOffset.y;
+			
+			// Adjust for workspace scroll position
+			const scrollLeft = workspace.scrollLeft || 0;
+			const scrollTop = workspace.scrollTop || 0;
+			
+			// Update position
+			tablePositions[key] = {
+				x: newX + scrollLeft,
+				y: newY + scrollTop
+			};
+			
+			// Update table position
+			tableElem.style.left = `${newX + scrollLeft}px`;
+			tableElem.style.top = `${newY + scrollTop}px`;
+			
+			// Update relations without full re-render for better performance
+			renderRelations(); // This now clears the SVG before rendering new relations
+		}
     }
 
     function handleDragEnd() {
