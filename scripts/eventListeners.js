@@ -4,7 +4,7 @@ import { state, addSelectedColumn, clearSelectedColumns, removeSelectedColumn } 
 import { handleFileUpload, handleExport } from './fileHandlers.js';
 import { renderVisualization } from './renderer.js';
 // dragDrop handlers are added/removed dynamically in dragDrop.js
-import { addRelation } from './relationManager.js';
+import { addRelation, getRelatedTablesTo, getRelatedTablesFrom } from './relationManager.js';
 import { updateSelectionInfo } from './uiUpdater.js';
 
 export function handleColumnClick(schema, table, column) {
@@ -68,6 +68,68 @@ export function setupInitialListeners() {
      // Listener for filter changes (if using the custom event from table-filter.js)
      document.addEventListener('filtersApplied', renderVisualization);
 
+     // Listen on the container where tables are added
+     DOM.tablesContainer.addEventListener('click', handleTableMenuAction);
+
+     // Global click listener to close menus (moved here for better organization)
+     document.addEventListener('click', (e) => {
+        // If the click is outside a menu container, close all open menus
+        if (!e.target.closest('.table-menu-container')) {
+            document.querySelectorAll('.table-menu-dropdown.show').forEach(dropdown => {
+                dropdown.classList.remove('show');
+            });
+        }
+    }, true); // Use capture phase to catch clicks early
 
     console.log("Initial event listeners set up.");
+}
+
+// Handles clicks on the table menu items
+export function handleTableMenuAction(event) {
+    const target = event.target;
+
+    // Check if the clicked element is a menu item button
+    if (target.classList.contains('table-menu-item')) {
+        event.preventDefault();
+        event.stopPropagation(); // Prevent triggering other listeners
+
+        const schema = target.dataset.schema;
+        const table = target.dataset.table;
+        const action = target.dataset.action;
+        const currentTableKey = `${schema}.${table}`;
+
+        console.log(`Menu action: ${action} for ${currentTableKey}`);
+
+        // Get currently visible tables BEFORE calculating new ones
+        const currentlyVisibleKeys = window.TableFilter.getVisibleTableKeys(); // Use the new function
+        let combinedTablesToShow = new Set(currentlyVisibleKeys); // Start with current view
+
+        // Always add the source table
+        combinedTablesToShow.add(currentTableKey);
+
+        let relatedKeys = [];
+
+        if (action === 'show-to') {
+            relatedKeys = getRelatedTablesTo(schema, table);
+            relatedKeys.forEach(key => combinedTablesToShow.add(key)); // Add related tables
+            console.log('Adding "to" relations. Total visible:', Array.from(combinedTablesToShow));
+            window.TableFilter.filterByTableList(Array.from(combinedTablesToShow)); // Filter with combined list
+        } else if (action === 'show-from') {
+            relatedKeys = getRelatedTablesFrom(schema, table);
+            relatedKeys.forEach(key => combinedTablesToShow.add(key)); // Add related tables
+            console.log('Adding "from" relations. Total visible:', Array.from(combinedTablesToShow));
+            window.TableFilter.filterByTableList(Array.from(combinedTablesToShow)); // Filter with combined list
+        } else if (action === 'show-all') {
+            console.log('Showing all tables');
+            window.TableFilter.showAllTables(); // Reset remains the same
+        }
+         // Add more 'else if' blocks for future actions
+
+
+        // Close the parent dropdown menu
+        const dropdown = target.closest('.table-menu-dropdown');
+        if (dropdown) {
+            dropdown.classList.remove('show');
+        }
+    }
 }

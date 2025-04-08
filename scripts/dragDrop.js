@@ -9,8 +9,10 @@ export function handleDragStart(e, schema, table) {
          e.stopPropagation(); // Stop the event from bubbling further
         return;
     }
+
+    console.log(e.target.classList)
     // Ensure we are clicking the header, not the column or table background
-    if (!e.target.classList.contains('table-header')) return;
+    if (!e.target.classList.contains('table-header-container') && !e.target.classList.contains('table-title')) return;
 	
     // Note: preventDefault() was here, removed as it might interfere with other potential text selection,
     // but keep an eye if dragging behaves unexpectedly. It might need to be added back.

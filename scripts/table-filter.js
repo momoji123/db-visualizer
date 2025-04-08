@@ -13,6 +13,7 @@ const TableFilter = (function() {
     let tableListContainer;
     let searchInput;
     let selectAllCheckbox;
+    let isFiltered = false; // Track if a specific filter is active
     
     // Initialize the module
     function init() {
@@ -94,19 +95,30 @@ const TableFilter = (function() {
 				visibleTables.delete(key);
 			}
 		});
+
+        // Check if any filter is applied (either from sidebar or programmatically)
+        isFiltered = visibleTables.size !== allTableKeys.length; 
 		
 		// Close the sidebar
 		closeSidebar();
 		
-		// Find and trigger the renderVisualization function from the main script
-		if (typeof renderVisualization === 'function') {
-			renderVisualization();
-		} else {
-			// As a fallback, dispatch a custom event that the main script can listen for
-			const event = new CustomEvent('filtersApplied');
-			document.dispatchEvent(event);
-		}
+		// Trigger the re-render
+        applyFiltersAndRender();
     }
+
+    // Centralized function to trigger rendering after filter changes
+    function applyFiltersAndRender() {
+        // Find and trigger the renderVisualization function from the main script
+        // Ensure renderVisualization is globally accessible or imported correctly
+        if (typeof window.renderVisualization === 'function') {
+           window.renderVisualization();
+       } else {
+           // Fallback event dispatching
+           console.warn("renderVisualization not found globally. Using event dispatch.");
+           const event = new CustomEvent('filtersApplied');
+           document.dispatchEvent(event);
+       }
+   }
     
     // Update table list based on schemas
     function updateTableList(schemas) {
@@ -189,12 +201,53 @@ const TableFilter = (function() {
     function isTableVisible(schema, table) {
         return visibleTables.has(`${schema}.${table}`);
     }
+
+    // Set the filter to show only a specific list of tables
+    function filterByTableList(tableKeysToShow) {
+        visibleTables.clear(); // Start fresh
+        tableKeysToShow.forEach(key => {
+            if (allTableKeys.includes(key)) { // Ensure the key is valid
+                 visibleTables.add(key);
+            }
+        });
+        isFiltered = true; // Mark that a specific filter is active
+        
+        // Re-render the main visualization
+        applyFiltersAndRender();
+
+        // Update the sidebar list (optional, but good for consistency)
+        renderTableList();
+        updateSelectAllState(); // Update select all based on new visibility
+
+        // Close sidebar if open
+        closeSidebar();
+    }
+
+    // Reset the filter to show all tables
+    function showAllTables() {
+        visibleTables.clear();
+        allTableKeys.forEach(key => visibleTables.add(key)); // Add all back
+        isFiltered = false; // Mark that the filter is reset
+
+        // Re-render the main visualization
+        applyFiltersAndRender();
+
+        // Update the sidebar list
+        renderTableList();
+        updateSelectAllState(); // Update select all based on new visibility
+    }
     
     // Public API
     return {
         init,
         updateTableList,
-        isTableVisible
+        isTableVisible,
+        filterByTableList, // Expose the new function
+        showAllTables,     // Expose the reset function
+        toggleSidebar,      // Expose toggle if needed elsewhere, e.g., a reset button
+        getVisibleTableKeys: function() {
+            return Array.from(visibleTables); // Return a copy as an array
+        }
     };
 })();
 

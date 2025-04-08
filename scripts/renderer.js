@@ -106,11 +106,74 @@ function renderTables() {
 			tableDiv.style.zIndex = position.z;
 
             // Create table header
-            const tableHeader = document.createElement('div');
-            tableHeader.className = 'table-header';
-            tableHeader.textContent = tableName;
-            // Attach drag start handler directly
-            tableHeader.addEventListener('mousedown', (e) => handleDragStart(e, schemaName, tableName));
+            const tableHeaderContainer = document.createElement('div');
+            tableHeaderContainer.className = 'table-header-container'; // Use a container for flex layout
+
+            const tableTitle = document.createElement('span');
+            tableTitle.className = 'table-title';
+            tableTitle.textContent = tableName;
+            // Attach drag start handler directly to the container or title
+            tableHeaderContainer.addEventListener('mousedown', (e) => {
+                 // Prevent drag if clicking on the menu button itself
+                 if (!e.target.closest('.table-menu-button')) {
+                    handleDragStart(e, schemaName, tableName);
+                 }
+             });
+
+
+            // --- BEGIN NEW MENU CODE ---
+            const menuContainer = document.createElement('div');
+            menuContainer.className = 'table-menu-container';
+
+            const menuButton = document.createElement('button');
+            menuButton.className = 'table-menu-button';
+            menuButton.innerHTML = '&#x22EE;'; // Vertical ellipsis icon (or use an SVG)
+            menuButton.title = 'Table options';
+             menuButton.addEventListener('click', (e) => {
+                 e.stopPropagation(); // Prevent table drag
+                 // Toggle the dropdown visibility
+                 const dropdown = menuContainer.querySelector('.table-menu-dropdown');
+                 dropdown.classList.toggle('show');
+             });
+
+
+            const menuDropdown = document.createElement('div');
+            menuDropdown.className = 'table-menu-dropdown';
+
+            // Option 1: Show 'TO' relations
+            const showToOption = document.createElement('button');
+            showToOption.className = 'table-menu-item';
+            showToOption.textContent = "Show 'To' Relations";
+            showToOption.dataset.schema = schemaName;
+            showToOption.dataset.table = tableName;
+            showToOption.dataset.action = 'show-to';
+            menuDropdown.appendChild(showToOption);
+
+            // Option 2: Show 'FROM' relations
+            const showFromOption = document.createElement('button');
+            showFromOption.className = 'table-menu-item';
+            showFromOption.textContent = "Show 'From' Relations";
+            showFromOption.dataset.schema = schemaName;
+            showFromOption.dataset.table = tableName;
+            showFromOption.dataset.action = 'show-from';
+            menuDropdown.appendChild(showFromOption);
+
+            // --- Future options can be added here ---
+            // Example:
+            // const futureOption = document.createElement('button');
+            // futureOption.className = 'table-menu-item';
+            // futureOption.textContent = "Future Action";
+            // futureOption.dataset.schema = schemaName;
+            // futureOption.dataset.table = tableName;
+            // futureOption.dataset.action = 'future-action';
+            // menuDropdown.appendChild(futureOption);
+
+            menuContainer.appendChild(menuButton);
+            menuContainer.appendChild(menuDropdown);
+             // --- END NEW MENU CODE ---
+
+            tableHeaderContainer.appendChild(tableTitle);
+            tableHeaderContainer.appendChild(menuContainer); // Add menu container to header
 
             // Create columns container
             const columnsDiv = document.createElement('div');
@@ -141,7 +204,7 @@ function renderTables() {
                 columnsDiv.appendChild(columnDiv);
             });
 
-            tableDiv.appendChild(tableHeader);
+            tableDiv.appendChild(tableHeaderContainer); // Append the new header container
             tableDiv.appendChild(columnsDiv);
             DOM.tablesContainer.appendChild(tableDiv); // Append tables after schemas
         });
