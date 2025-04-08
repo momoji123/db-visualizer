@@ -13,7 +13,28 @@ export const state = {
     tablePositions: {},
     lastScrollLeft: 0,
     lastScrollTop: 0,
+	nextTableZIndex: 3, // Initial base z-index for tables
 };
+
+/**
+ * Gets the next available z-index for a table and increments the counter.
+ * Caps the z-index to avoid overlapping critical UI elements like the sidebar.
+ * @returns {number} The next z-index to use.
+ */
+export function getNextTableZIndex() {
+    const currentIndex = state.nextTableZIndex;
+    // Increment but cap below sidebar (z-index: 100). Cap at 90 for safety.
+    state.nextTableZIndex = Math.min(currentIndex + 1, 90);
+    return currentIndex;
+}
+
+/**
+ * Resets the z-index counter, e.g., when loading new data.
+ * @param {number} [base=3] - The base z-index to start from.
+ */
+export function resetNextTableZIndex(base = 3) {
+    state.nextTableZIndex = base;
+}
 
 export function setData(newData) {
     state.data = newData;

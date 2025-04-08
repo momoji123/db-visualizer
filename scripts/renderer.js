@@ -94,7 +94,8 @@ function renderTables() {
 
             const table = state.schemas[schemaName].tables[tableName];
             const key = `${schemaName}.${tableName}`;
-            const position = state.tablePositions[key] || { x: 10, y: 10 }; // Default position if missing
+            const position = state.tablePositions[key] || { x: 10, y: 10, z:3 }; // Default position if missing
+			console.log("position of " + key, position) 
 
             // Create table container
             const tableDiv = document.createElement('div');
@@ -103,6 +104,7 @@ function renderTables() {
             tableDiv.style.left = `${position.x}px`;
             tableDiv.style.top = `${position.y}px`;
             tableDiv.style.position = 'absolute'; // Ensure absolute positioning
+			tableDiv.style.zIndex = position.z;
 
             // Create table header
             const tableHeader = document.createElement('div');

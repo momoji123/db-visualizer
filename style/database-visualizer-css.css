@@ -162,14 +162,13 @@ body {
     background-color: white;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     overflow: hidden;
-    z-index: 3;
+    z-index: 3; /* Base z-index for all tables */
     min-width: 200px;
 }
 
 .table.dragging {
      opacity: 0.8;
      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
-     z-index: 10; /* Bring table to top while dragging */
 }
 
 .table-header {

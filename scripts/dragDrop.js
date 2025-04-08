@@ -1,6 +1,6 @@
 // scripts/dragDrop.js
 import * as DOM from './domElements.js';
-import { state, setDragging, updateTablePosition, setSchemaDragging, storeInitialPositionsForSchemaDrag } from './state.js';
+import { state, setDragging, updateTablePosition, setSchemaDragging, storeInitialPositionsForSchemaDrag, getNextTableZIndex } from './state.js';
 import { renderVisualization, renderRelations } from './renderer.js'; // Import renderRelations too
 
 export function handleDragStart(e, schema, table) {
@@ -12,13 +12,19 @@ export function handleDragStart(e, schema, table) {
     // Ensure we are clicking the header, not the column or table background
     if (!e.target.classList.contains('table-header')) return;
 	
-    e.preventDefault();
-     // Ensure we are clicking the header, not the column or table background
-     if (!e.target.classList.contains('table-header')) return;
-
+    // Note: preventDefault() was here, removed as it might interfere with other potential text selection,
+    // but keep an eye if dragging behaves unexpectedly. It might need to be added back.
+    // e.preventDefault();
 
     const tableElement = document.getElementById(`table-${schema}-${table}`);
     if (!tableElement) return;
+
+	
+    // Get the next available z-index and apply it to the clicked/dragged table
+    const newZIndex = getNextTableZIndex();
+	state.tablePositions[`${schema}.${table}`].z = newZIndex;
+    tableElement.style.zIndex = newZIndex;
+    // --- End Z-Index Handling ---
 
     const rect = tableElement.getBoundingClientRect(); // Use table element for rect
      const workspaceRect = DOM.workspace.getBoundingClientRect();
@@ -42,7 +48,7 @@ export function handleDragStart(e, schema, table) {
 
 
      // Optional: Add a class to the dragged element for visual feedback
-     tableElement.classList.add('dragging');
+     //tableElement.classList.add('dragging');
 }
 
 export function handleDrag(e) {
@@ -57,8 +63,9 @@ export function handleDrag(e) {
 
         let newX = e.clientX - workspaceRect.left - state.dragOffset.x + DOM.workspace.scrollLeft;
         let newY = e.clientY - workspaceRect.top - state.dragOffset.y + DOM.workspace.scrollTop;
+		let newZ = state.tablePositions[key].z;
 
-        updateTablePosition(key, { x: newX, y: newY });
+        updateTablePosition(key, { x: newX, y: newY, z:newZ });
         tableElem.style.left = `${newX}px`;
         tableElem.style.top = `${newY}px`;
 
@@ -95,9 +102,10 @@ export function handleDrag(e) {
                 const initialPos = state.initialTablePositionsForSchemaDrag[key];
                 const newTableX = initialPos.x + deltaX;
                 const newTableY = initialPos.y + deltaY;
+				const newTableZ = initialPos.z
 
                 // Update state and element style
-                updateTablePosition(key, { x: newTableX, y: newTableY });
+                updateTablePosition(key, { x: newTableX, y: newTableY, z:newTableZ });
                 tableElem.style.left = `${newTableX}px`;
                 tableElem.style.top = `${newTableY}px`;
             }
@@ -113,12 +121,14 @@ export function handleDragEnd(e) {
 
     if (wasTableDragging) {
         const { schema, table } = state.draggedTable || {};
+		console.log(state)
         setDragging(false); // Reset table dragging state
         document.body.style.cursor = 'default';
         if (schema && table) {
             const tableElem = document.getElementById(`table-${schema}-${table}`);
             if (tableElem) {
                 tableElem.classList.remove('dragging');
+                // DO NOT reset z-index here - let it persist
             }
         }
     }
@@ -187,9 +197,9 @@ export function handleSchemaDragStart(e, schemaName) {
                  // Fallback if position somehow missing (shouldn't normally happen)
                  const tableElem = document.getElementById(`table-${key.replace('.', '-')}`);
                  if(tableElem){
-                      initialTablePositions[key] = { x: parseFloat(tableElem.style.left) || 0, y: parseFloat(tableElem.style.top) || 0 };
+                      initialTablePositions[key] = { x: parseFloat(tableElem.style.left) || 0, y: parseFloat(tableElem.style.top) || 0, z: parseFloat(tableElem.style.zIndex) };
                  } else {
-                      initialTablePositions[key] = { x: 0, y: 0 };
+                      initialTablePositions[key] = { x: 0, y: 0, z: state.nextTableZIndex };
                  }
             }
         });
