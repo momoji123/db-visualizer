@@ -24,6 +24,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let draggedTable = null;
     let dragOffset = { x: 0, y: 0 };
     let tablePositions = {};
+	let lastScrollLeft = 0;
+	let lastScrollTop = 0;
 	
 	// Make renderVisualization accessible outside the IIFE scope
 	window.renderVisualization = function() {
@@ -165,23 +167,60 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function renderVisualization() {
-        // Clear containers
-        tablesContainer.innerHTML = '';
-        svgCanvas.innerHTML = '';
-        
-        // Set SVG viewBox based on workspace size
-        const workspaceRect = workspace.getBoundingClientRect();
-        svgCanvas.setAttribute('width', workspaceRect.width);
-        svgCanvas.setAttribute('height', workspaceRect.height);
-        
-        // Render schemas
-        renderSchemas();
-        
-        // Render tables
-        renderTables();
-        
-        // Render relations
-        renderRelations();
+		// Save current scroll position before clearing
+		lastScrollLeft = workspace.scrollLeft || 0;
+		lastScrollTop = workspace.scrollTop || 0;
+		
+		// Clear containers
+		tablesContainer.innerHTML = '';
+		svgCanvas.innerHTML = '';
+		
+		// Calculate the required size based on table positions and workspace dimensions
+		const workspaceRect = workspace.getBoundingClientRect();
+		
+		// Find the maximum extents of all tables
+		let maxRight = workspaceRect.width;
+		let maxBottom = workspaceRect.height;
+		
+		Object.keys(tablePositions).forEach(key => {
+			const pos = tablePositions[key];
+			const [schema, table] = key.split('.');
+			if (schemas[schema]?.tables[table]) {
+				// Estimate table dimensions
+				const tableWidth = 200;
+				const tableHeight = 40 + schemas[schema].tables[table].columns.length * 30;
+				
+				maxRight = Math.max(maxRight, pos.x + tableWidth + 100); // Add extra margin
+				maxBottom = Math.max(maxBottom, pos.y + tableHeight + 100); // Add extra margin
+			}
+		});
+		
+		// Set minimum size to viewport dimensions
+		const minWidth = Math.max(workspaceRect.width, maxRight);
+		const minHeight = Math.max(workspaceRect.height, maxBottom);
+		
+		// Set tables container and SVG dimensions
+		tablesContainer.style.width = `${minWidth}px`;
+		tablesContainer.style.height = `${minHeight}px`;
+		
+		// Set SVG viewBox and dimensions
+		svgCanvas.setAttribute('width', minWidth);
+		svgCanvas.setAttribute('height', minHeight);
+		svgCanvas.style.width = `${minWidth}px`;
+		svgCanvas.style.height = `${minHeight}px`;
+		
+		// Render schemas
+		renderSchemas();
+		
+		// Render tables
+		renderTables();
+		
+		// Restore scroll position after rendering
+		workspace.scrollLeft = lastScrollLeft;
+		workspace.scrollTop = lastScrollTop;
+		
+		// Render relations
+		renderRelations();
     }
 	
 	// Store reference to the function
@@ -351,16 +390,21 @@ document.addEventListener('DOMContentLoaded', function() {
 							const toColumnElem = document.getElementById(`col-${relation.to.schema}-${relation.to.table}-${relation.to.column}`);
 							
 							if (fromColumnElem && toColumnElem) {
-								// Get positions for the columns
-								const fromRect = fromColumnElem.getBoundingClientRect();
-								const toRect = toColumnElem.getBoundingClientRect();
-								const workspaceRect = workspace.getBoundingClientRect();
+								// Get positions for the columns - use direct positions rather than bounding rectangles
+								// to avoid issues with scrolling
+								const fromPosition = tablePositions[fromKey];
+								const toPosition = tablePositions[toKey];
 								
-								// Calculate start and end points relative to the workspace
-								const fromX = fromRect.right - workspaceRect.left;
-								const fromY = fromRect.top - workspaceRect.top + (fromRect.height / 2);
-								const toX = toRect.left - workspaceRect.left;
-								const toY = toRect.top - workspaceRect.top + (toRect.height / 2);
+								// Calculate offsets within tables
+								const fromColumnIndex = table.columns.indexOf(relation.from.column);
+								const toTableColumns = schemas[relation.to.schema].tables[relation.to.table].columns;
+								const toColumnIndex = toTableColumns.indexOf(relation.to.column);
+								
+								// Calculate precise positions
+								const fromX = fromPosition.x + 200; // Right side of the table
+								const fromY = fromPosition.y + 40 + fromColumnIndex * 30 + 15; // Middle of the column row
+								const toX = toPosition.x; // Left side of the table
+								const toY = toPosition.y + 40 + toColumnIndex * 30 + 15; // Middle of the column row
 								
 								// Create relation line (add to lines group)
 								const line = document.createElementNS(ns, 'line');
@@ -496,15 +540,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function handleDragEnd() {
         if (isDragging) {
-            isDragging = false;
-            draggedTable = null;
-            document.body.style.cursor = 'default';
-            // Full re-render after drag to update schema boundaries
-            renderVisualization();
-        }
+			isDragging = false;
+			draggedTable = null;
+			document.body.style.cursor = 'default';
+			
+			// Save scroll position before re-render
+			lastScrollLeft = workspace.scrollLeft || 0;
+			lastScrollTop = workspace.scrollTop || 0;
+			
+			// Full re-render after drag to update schema boundaries
+			renderVisualization();
+		}
     }
 
     function handleColumnClick(schema, table, column) {
+		// Save scroll position
+		lastScrollLeft = workspace.scrollLeft || 0;
+		lastScrollTop = workspace.scrollTop || 0;
+		
         // Check if column is already selected
         const existingIndex = selectedColumns.findIndex(item => 
             item.schema === schema && item.table === table && item.column === column);
@@ -543,6 +596,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function addRelation(from, to) {
+		 // Save scroll position
+		lastScrollLeft = workspace.scrollLeft || 0;
+		lastScrollTop = workspace.scrollTop || 0;
+		
         // Add relation in data format
         const newRow = {
             schema: from.schema,
@@ -575,6 +632,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function removeRelation(from, to) {
+		// Save scroll position
+		lastScrollLeft = workspace.scrollLeft || 0;
+		lastScrollTop = workspace.scrollTop || 0;
+		
         // Debug log to verify removal is being called
         console.log("Removing relation:", from, to);
         
@@ -648,4 +709,12 @@ document.addEventListener('DOMContentLoaded', function() {
             statusInfo.textContent = 'No data loaded';
         }
     }
+	
+	window.addEventListener('resize', resizeWorkspace);
+
+	// And add this function
+	function resizeWorkspace() {
+		// Call renderVisualization to recalculate everything on resize
+		renderVisualization();
+	}
 });
