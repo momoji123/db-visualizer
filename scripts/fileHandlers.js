@@ -10,7 +10,8 @@ export function handleFileUpload(event) {
         const reader = new FileReader();
         reader.onload = (e) => {
             const text = e.target.result;
-            const lines = text.split('\n');
+            // Split by either \r\n or \n
+            const lines = text.split(/\r\n|\n|\r/);
 
             // Skip empty lines and header row
             const parsedData = lines

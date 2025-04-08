@@ -29,9 +29,6 @@ export function addRelation(from, to) {
     // Add relation to the schema structure (for rendering)
     addRelationToSchema(from, to);
 
-
-    console.log("Added relation:", from, "->", to);
-
     renderVisualization();
     updateStatus();
 }

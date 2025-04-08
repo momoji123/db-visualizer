@@ -126,6 +126,9 @@ export function removeRelationFromSchema(from, relationIndex) {
 
 export function addRelationToSchema(from, to) {
      if (state.schemas[from.schema]?.tables[from.table]) {
-        state.schemas[from.schema].tables[from.table].relations.push({ from, to });
+		if(findRelationIndex(from, to)==-1){
+			state.schemas[from.schema].tables[from.table].relations.push({ from, to });
+			console.log("Added relation:", from, "->", to);
+		}
     }
 }

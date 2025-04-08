@@ -95,7 +95,6 @@ function renderTables() {
             const table = state.schemas[schemaName].tables[tableName];
             const key = `${schemaName}.${tableName}`;
             const position = state.tablePositions[key] || { x: 10, y: 10, z:3 }; // Default position if missing
-			console.log("position of " + key, position) 
 
             // Create table container
             const tableDiv = document.createElement('div');

@@ -121,7 +121,6 @@ export function handleDragEnd(e) {
 
     if (wasTableDragging) {
         const { schema, table } = state.draggedTable || {};
-		console.log(state)
         setDragging(false); // Reset table dragging state
         document.body.style.cursor = 'default';
         if (schema && table) {
