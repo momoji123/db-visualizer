@@ -119,9 +119,16 @@ export function handleTableMenuAction(event) {
             relatedKeys.forEach(key => combinedTablesToShow.add(key)); // Add related tables
             console.log('Adding "from" relations. Total visible:', Array.from(combinedTablesToShow));
             window.TableFilter.filterByTableList(Array.from(combinedTablesToShow)); // Filter with combined list
-        } else if (action === 'show-all') {
-            console.log('Showing all tables');
-            window.TableFilter.showAllTables(); // Reset remains the same
+        } else if (action === 'hide-table' && schema && table) {
+            const keyToHide = `${schema}.${table}`;
+            console.log(`Hiding table: ${keyToHide}`);
+            // Get current visible tables, remove the one to hide
+            const currentlyVisibleKeys = window.TableFilter.getVisibleTableKeys();
+            const updatedVisibleKeys = currentlyVisibleKeys.filter(key => key !== keyToHide);
+            // Apply the new list (which excludes the hidden table)
+            window.TableFilter.filterByTableList(updatedVisibleKeys);
+        }else {
+            console.warn(`Unknown or incomplete action: ${action} for ${schema}.${table}`);
         }
          // Add more 'else if' blocks for future actions
 

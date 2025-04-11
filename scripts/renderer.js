@@ -158,6 +158,15 @@ function renderTables() {
             showFromOption.dataset.action = 'show-from';
             menuDropdown.appendChild(showFromOption);
 
+            // Option 3: Hide Table
+            const hideTableOption = document.createElement('button');
+            hideTableOption.className = 'table-menu-item';
+            hideTableOption.textContent = "Hide Table";
+            hideTableOption.dataset.schema = schemaName;
+            hideTableOption.dataset.table = tableName;
+            hideTableOption.dataset.action = 'hide-table'; // New action type
+            menuDropdown.appendChild(hideTableOption);
+
             // --- Future options can be added here ---
             // Example:
             // const futureOption = document.createElement('button');
