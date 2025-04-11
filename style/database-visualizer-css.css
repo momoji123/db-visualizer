@@ -164,6 +164,7 @@ body {
     overflow: hidden;
     z-index: 3; /* Base z-index for all tables */
     min-width: 200px;
+    overflow: visible;
 }
 
 .table.dragging {
