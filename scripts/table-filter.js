@@ -221,6 +221,10 @@ const TableFilter = (function() {
             }
         });
         isFiltered = true; // Mark that a specific filter is active
+
+        if (window.updateTableVisibilityFromFilter) {
+            window.updateTableVisibilityFromFilter(visibleTables);
+        }
         
         // Re-render the main visualization
         applyFiltersAndRender();
