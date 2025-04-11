@@ -14,8 +14,34 @@ export const state = {
     lastScrollLeft: 0,
     lastScrollTop: 0,
 	minTableZIndex: 3, // Initial base z-index for tables
-    maxTableZIndex:null
+    maxTableZIndex:null,
+    tableVisibility: {},
 };
+
+export function setTableVisibility(key, isVisible) {
+    state.tableVisibility[key] = isVisible;
+}
+
+export function updateTableVisibilityFromFilter(visibleTableSet) {
+    // Update the tableVisibility based on the filter selection
+    Object.keys(state.tableVisibility).forEach(key => {
+        state.tableVisibility[key] = visibleTableSet.has(key);
+    });
+}
+
+export function initializeTableVisibility(schemas) {
+    const visibility = {};
+    
+    // Set visibility based on schema data
+    Object.keys(schemas).forEach(schemaName => {
+        Object.keys(schemas[schemaName].tables).forEach(tableName => {
+            const key = `${schemaName}.${tableName}`;
+            visibility[key] = schemas[schemaName].tables[tableName].visible || false;
+        });
+    });
+    
+    state.tableVisibility = visibility;
+}
 
 export function getMaxTableZIndex(){
     if (state.maxTableZIndex === null) {
@@ -43,6 +69,8 @@ export function updateTableZPositionToTop(key){
         state.tablePositions[key].z = newMaxZ;
     }
 }
+// Make sure updateTableZPositionToTop is globally available
+window.updateTableVisibilityFromFilter = updateTableVisibilityFromFilter;
 
 export function setData(newData) {
     state.data = newData;

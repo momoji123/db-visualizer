@@ -1,5 +1,5 @@
 // scripts/dataProcessor.js
-import { state, setSchemas, setTablePositions } from './state.js';
+import { state, setSchemas, setTablePositions, initializeTableVisibility } from './state.js';
 import { renderVisualization } from './renderer.js';
 import { updateStatus } from './uiUpdater.js';
 // Assuming TableFilter is globally available or imported if it's also a module
@@ -11,7 +11,7 @@ export function processData() {
 
     // First pass: build schemas and tables
     state.data.forEach(row => {
-        const { schema, table_name, column_name } = row;
+        const { schema, table_name, column_name, visibility_state } = row;
 
         if (!newSchemas[schema]) {
             newSchemas[schema] = {
@@ -22,8 +22,12 @@ export function processData() {
         if (!newSchemas[schema].tables[table_name]) {
             newSchemas[schema].tables[table_name] = {
                 columns: [],
-                relations: []
+                relations: [],
+                visible: visibility_state || false
             };
+        }else if (visibility_state) {
+            // If any row with this table has visibility_state=true, set the table to visible
+            newSchemas[schema].tables[table_name].visible = true;
         }
 
         // Ensure columns are unique
@@ -72,6 +76,7 @@ export function processData() {
     // Update state
     setSchemas(newSchemas);
     setTablePositions(newTablePositions); // Use combined new/existing positions
+    initializeTableVisibility(newSchemas);
 
     // Update filter list (assuming TableFilter is accessible)
     if (window.TableFilter && typeof window.TableFilter.updateTableList === 'function') {

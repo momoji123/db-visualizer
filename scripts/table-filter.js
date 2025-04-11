@@ -14,6 +14,7 @@ const TableFilter = (function() {
     let searchInput;
     let selectAllCheckbox;
     let isFiltered = false; // Track if a specific filter is active
+    let schemasCache;
     
     // Initialize the module
     function init() {
@@ -96,6 +97,10 @@ const TableFilter = (function() {
 			}
 		});
 
+        if (window.updateTableVisibilityFromFilter) {
+            window.updateTableVisibilityFromFilter(visibleTables);
+        }
+
         // Check if any filter is applied (either from sidebar or programmatically)
         isFiltered = visibleTables.size !== allTableKeys.length; 
 		
@@ -125,13 +130,18 @@ const TableFilter = (function() {
         // Clear allTableKeys and reset visibleTables
         allTableKeys = [];
         visibleTables.clear();
+        schemasCache = schemas
         
         // Populate allTableKeys and visibleTables with all tables by default
         Object.keys(schemas).forEach(schemaName => {
             Object.keys(schemas[schemaName].tables).forEach(tableName => {
                 const key = `${schemaName}.${tableName}`;
                 allTableKeys.push(key);
-                visibleTables.add(key);
+
+                // Only add to visibleTables if the table is marked as visible in the schema
+                if (schemas[schemaName].tables[tableName].visible) {
+                    visibleTables.add(key);
+                }
             });
         });
         

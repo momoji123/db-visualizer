@@ -28,7 +28,8 @@ export function handleFileUpload(event) {
                         relation_column_name: values[5] || '',
                         pos_x: parseFloat(values[6]) || 0, // Parse as float, default to 0
                         pos_y: parseFloat(values[7]) || 0, // Parse as float, default to 0
-                        pos_z: parseInt(values[8]) || state.minTableZIndex  // Parse as int, default to 0
+                        pos_z: parseInt(values[8]) || state.minTableZIndex,  // Parse as int, default to 0
+                        visibility_state: values[9] === 'true' ? true : false
                     };
                 });
 
@@ -47,8 +48,9 @@ export function handleExport() {
             // Retrieve x, y, z from tablePositions
             const key = `${row.schema}.${row.table_name}`;
             const pos = state.tablePositions[key] || { x: 0, y: 0, z: state.minTableZIndex }; // Default position
+            const visibility = state.tableVisibility?.[key] !== false ? 'true' : 'false'; // Default to true if undefined
 
-            return `${row.schema};${row.table_name};${row.column_name};${row.relation_schema || ''};${row.relation_table_name || ''};${row.relation_column_name || ''};${pos.x};${pos.y};${pos.z}`;
+            return `${row.schema};${row.table_name};${row.column_name};${row.relation_schema || ''};${row.relation_table_name || ''};${row.relation_column_name || ''};${pos.x};${pos.y};${pos.z};${visibility}`;
         }).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
