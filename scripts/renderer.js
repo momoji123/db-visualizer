@@ -1,6 +1,6 @@
 // scripts/renderer.js
 import * as DOM from './domElements.js';
-import { state, saveScrollPosition } from './state.js';
+import { state, saveScrollPosition, isTableSelected } from './state.js';
 import { handleDragStart, handleSchemaDragStart } from './dragDrop.js';
 import { handleColumnClick } from './eventListeners.js'; // Changed from relationManager
 import { removeRelation } from './relationManager.js';
@@ -104,6 +104,10 @@ function renderTables() {
             tableDiv.style.top = `${position.y}px`;
             tableDiv.style.position = 'absolute'; // Ensure absolute positioning
 			tableDiv.style.zIndex = position.z;
+
+            if (isTableSelected(key)) {
+                tableDiv.classList.add('selected');
+            }
 
             // Create table header
             const tableHeaderContainer = document.createElement('div');

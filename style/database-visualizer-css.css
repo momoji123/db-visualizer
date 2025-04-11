@@ -172,6 +172,12 @@ body {
      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
 }
 
+.table.selected {
+    border-color: #007bff; /* Bootstrap primary blue, for example */
+    border-width: 2px;
+    box-shadow: 0 0 8px rgba(0, 123, 255, 0.6);
+}
+
 .table-header {
     background-color: #3498db;
     color: white;

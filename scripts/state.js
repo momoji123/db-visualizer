@@ -3,9 +3,11 @@ export const state = {
     data: [],
     schemas: {},
     selectedColumns: [],
+    selectedTables: new Set(), // <-- ADD THIS LINE
     isDragging: false,
     draggedTable: null,
-    dragOffset: { x: 0, y: 0 },
+    dragStartMousePos: { x: 0, y: 0 },
+    initialDragPositions: {}, // <-- ADD THIS LINE (To store positions of all selected tables on drag start)
 	isSchemaDragging: false,
     draggedSchemaName: null,
     schemaDragOffset: { x: 0, y: 0 },
@@ -101,11 +103,14 @@ export function storeInitialPositionsForSchemaDrag(positions) {
     state.initialTablePositionsForSchemaDrag = positions;
 }
 
-export function setDragging(isDragging, table = null, offset = { x: 0, y: 0 }) {
+export function setDragging(isDragging, tableKey = null, startMousePos = { x: 0, y: 0 }) {
     if (isDragging && state.isSchemaDragging) return; // Don't allow table drag if schema drag is active
     state.isDragging = isDragging;
-    state.draggedTable = table;
-    state.dragOffset = offset;
+    state.draggedTable = tableKey; // Store the key of the primary table
+    state.dragStartMousePos = startMousePos; // Store the initial mouse position
+    if (!isDragging) {
+        state.initialDragPositions = {}; // Clear initial positions when drag ends
+    }
 }
 
 export function setSelectedColumns(columns) {
@@ -167,4 +172,32 @@ export function addRelationToSchema(from, to) {
 			console.log("Added relation:", from, "->", to);
 		}
     }
+}
+
+export function addSelectedTable(key) {
+    state.selectedTables.add(key);
+}
+
+export function removeSelectedTable(key) {
+    state.selectedTables.delete(key);
+}
+
+export function toggleSelectedTable(key) {
+    if (state.selectedTables.has(key)) {
+        state.selectedTables.delete(key);
+    } else {
+        state.selectedTables.add(key);
+    }
+}
+
+export function clearSelectedTables() {
+    state.selectedTables.clear();
+}
+
+export function isTableSelected(key) {
+    return state.selectedTables.has(key);
+}
+
+export function getSelectedTables() {
+    return Array.from(state.selectedTables); // Return as an array
 }

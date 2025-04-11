@@ -1,6 +1,10 @@
 // scripts/dragDrop.js
 import * as DOM from './domElements.js';
-import { state, setDragging, updateTablePosition, setSchemaDragging, storeInitialPositionsForSchemaDrag, getMaxTableZIndex, updateTableZPositionToTop } from './state.js';
+import { state, setDragging, updateTablePosition, setSchemaDragging, 
+    storeInitialPositionsForSchemaDrag, getMaxTableZIndex, updateTableZPositionToTop,
+    addSelectedTable, removeSelectedTable, toggleSelectedTable,
+    clearSelectedTables, isTableSelected, getSelectedTables
+ } from './state.js';
 import { renderVisualization, renderRelations } from './renderer.js'; // Import renderRelations too
 
 export function handleDragStart(e, schema, table) {
@@ -10,71 +14,109 @@ export function handleDragStart(e, schema, table) {
         return;
     }
 
-    console.log(e.target.classList)
     // Ensure we are clicking the header, not the column or table background
     if (!e.target.classList.contains('table-header-container') && !e.target.classList.contains('table-title')) return;
 	
     // Note: preventDefault() was here, removed as it might interfere with other potential text selection,
     // but keep an eye if dragging behaves unexpectedly. It might need to be added back.
     // e.preventDefault();
-
+    
     const tableElement = document.getElementById(`table-${schema}-${table}`);
     if (!tableElement) return;
 
 	
     // Get the next available z-index and apply it to the clicked/dragged table
     const key = `${schema}.${table}`;
-    updateTableZPositionToTop(key)
-    tableElement.style.zIndex = state.tablePositions[key].z;
-    // --- End Z-Index Handling ---
 
-    const rect = tableElement.getBoundingClientRect(); // Use table element for rect
-     const workspaceRect = DOM.workspace.getBoundingClientRect();
+    // --- SELECTION LOGIC ---
+    if (e.shiftKey) {
+        // Shift + Click: Toggle selection for this table
+        toggleSelectedTable(key);
+    } else {
+        // Click without Shift
+        if (!isTableSelected(key)) {
+            // If the clicked table wasn't already selected, clear others and select only this one.
+            clearSelectedTables();
+            addSelectedTable(key);
+        }
+        // If it *was* selected, and others might be too, don't clear, allow dragging the group.
+    }
+    // --- END SELECTION LOGIC ---
+    renderVisualization();
 
+    // --- DRAG INITIATION ---
+    // Only start dragging if the clicked table is currently selected
+    if (isTableSelected(key)) {
+        // Bring *all* selected tables to the top z-index group if needed,
+        // but only the *primary* clicked one truly gets the highest z-index at this moment.
+        // (Alternatively, you could bring all selected to the top together)
+        updateTableZPositionToTop(key);
+        tableElement.style.zIndex = state.tablePositions[key].z;
 
-    const dragOffset = {
-        // Calculate offset relative to the workspace container, considering scroll
-         x: e.clientX - rect.left,
-         y: e.clientY - rect.top
-       // x: e.clientX - workspaceRect.left + DOM.workspace.scrollLeft - state.tablePositions[`${schema}.${table}`].x,
-       // y: e.clientY - workspaceRect.top + DOM.workspace.scrollTop - state.tablePositions[`${schema}.${table}`].y
-    };
+        const workspaceRect = DOM.workspace.getBoundingClientRect();
 
-    setDragging(true, { schema, table }, dragOffset);
+        // Capture initial mouse position relative to the workspace container
+        const startMouseX = e.clientX - workspaceRect.left + DOM.workspace.scrollLeft;
+        const startMouseY = e.clientY - workspaceRect.top + DOM.workspace.scrollTop;
+        const startMousePos = { x: startMouseX, y: startMouseY }; // <-- Capture this
 
-    document.body.style.cursor = 'move';
-     // Add listeners to document to handle dragging outside the initial element
-     document.addEventListener('mousemove', handleDrag);
-     document.addEventListener('mouseup', handleDragEnd);
-     document.addEventListener('mouseleave', handleDragEnd); // Handle mouse leaving the window
+        // Store initial positions of all selected tables
+        const initialPositions = {};
+        getSelectedTables().forEach(selectedKey => {
+            if (state.tablePositions[selectedKey]) {
+                initialPositions[selectedKey] = { ...state.tablePositions[selectedKey] };
+            }
+        });
+        state.initialDragPositions = initialPositions;
 
+        // Set dragging state, passing the START MOUSE POSITION
+        setDragging(true, key, startMousePos); // <-- Use startMousePos here
 
-     // Optional: Add a class to the dragged element for visual feedback
-     //tableElement.classList.add('dragging');
+        document.body.style.cursor = 'move';
+        document.addEventListener('mousemove', handleDrag);
+        document.addEventListener('mouseup', handleDragEnd);
+        document.addEventListener('mouseleave', handleDragEnd);
+    }
 }
 
 export function handleDrag(e) {
     if (state.isDragging && state.draggedTable) {
-        // --- Existing Table Drag Logic ---
+        // --- Multi-Table Drag Logic ---
         e.preventDefault();
-        const { schema, table } = state.draggedTable;
-        const key = `${schema}.${table}`;
-        const tableElem = document.getElementById(`table-${schema}-${table}`);
-        if (!tableElem) return;
+        const primaryDraggedKey = state.draggedTable; // Key of table that initiated drag
+        const initialPrimaryPos = state.initialDragPositions[primaryDraggedKey];
+        if (!initialPrimaryPos) return; // Safety check
+
         const workspaceRect = DOM.workspace.getBoundingClientRect();
 
-        let newX = e.clientX - workspaceRect.left - state.dragOffset.x + DOM.workspace.scrollLeft;
-        let newY = e.clientY - workspaceRect.top - state.dragOffset.y + DOM.workspace.scrollTop;
-		let newZ = state.tablePositions[key].z;
+        // Calculate current mouse position relative to the workspace container
+        const currentMouseX = e.clientX - workspaceRect.left + DOM.workspace.scrollLeft;
+        const currentMouseY = e.clientY - workspaceRect.top + DOM.workspace.scrollTop;
 
-        updateTablePosition(key, { x: newX, y: newY, z:newZ });
-        tableElem.style.left = `${newX}px`;
-        tableElem.style.top = `${newY}px`;
+        // Calculate the delta move from the drag start mouse position
+        const deltaX = currentMouseX - state.dragStartMousePos.x;
+        const deltaY = currentMouseY - state.dragStartMousePos.y;
 
-        renderRelations(); // Update relations during table drag
+        // Move all selected tables based on their initial positions and the calculated delta
+        getSelectedTables().forEach(key => {
+            const initialPos = state.initialDragPositions[key];
+            const tableElem = document.getElementById(`table-${key.replace('.', '-')}`);
+            if (initialPos && tableElem) {
+                // Calculate new position based on the initial position + delta
+                const newX = initialPos.x + deltaX;
+                const newY = initialPos.y + deltaY;
+                const newZ = initialPos.z; // Keep original Z
+
+                // Update state and element style
+                updateTablePosition(key, { x: newX, y: newY, z: newZ });
+                tableElem.style.left = `${newX}px`;
+                tableElem.style.top = `${newY}px`;
+            }
+        });
+
+        renderRelations(); // Update relations during drag
 
     } else if (state.isSchemaDragging && state.draggedSchemaName) {
-        // --- New Schema Drag Logic ---
         e.preventDefault();
         const schemaName = state.draggedSchemaName;
         const schemaAreaElem = DOM.tablesContainer.querySelector(`.schema-area[data-schema="${schemaName}"]`);
@@ -125,13 +167,6 @@ export function handleDragEnd(e) {
         const { schema, table } = state.draggedTable || {};
         setDragging(false); // Reset table dragging state
         document.body.style.cursor = 'default';
-        if (schema && table) {
-            const tableElem = document.getElementById(`table-${schema}-${table}`);
-            if (tableElem) {
-                tableElem.classList.remove('dragging');
-                // DO NOT reset z-index here - let it persist
-            }
-        }
     }
 
     if (wasSchemaDragging) {
