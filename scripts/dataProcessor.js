@@ -23,7 +23,8 @@ export function processData() {
             newSchemas[schema].tables[table_name] = {
                 columns: [],
                 relations: [],
-                visible: visibility_state || false
+                visible: visibility_state || false,
+                columnsCollapsed: true
             };
         }else if (visibility_state) {
             // If any row with this table has visibility_state=true, set the table to visible

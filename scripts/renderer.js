@@ -95,6 +95,7 @@ function renderTables() {
             const table = state.schemas[schemaName].tables[tableName];
             const key = `${schemaName}.${tableName}`;
             const position = state.tablePositions[key] || { x: 10, y: 10, z:3 }; // Default position if missing
+            const isCollapsed = table.columnsCollapsed || false;
 
             // Create table container
             const tableDiv = document.createElement('div');
@@ -113,6 +114,15 @@ function renderTables() {
             const tableHeaderContainer = document.createElement('div');
             tableHeaderContainer.className = 'table-header-container'; // Use a container for flex layout
 
+            // Collapse/Expand Column Button
+            const collapseButton = document.createElement('button');
+            collapseButton.className = 'table-collapse-button btn'; // Add 'btn' class for basic styling
+            collapseButton.innerHTML = isCollapsed ? '+' : '-'; // Set text based on state
+            collapseButton.title = isCollapsed ? 'Expand columns' : 'Collapse columns';
+            collapseButton.dataset.schema = schemaName;
+            collapseButton.dataset.table = tableName;
+            collapseButton.addEventListener('click', handleToggleColumns); // Add event listener
+
             const tableTitle = document.createElement('span');
             tableTitle.className = 'table-title';
             tableTitle.textContent = tableName;
@@ -125,7 +135,7 @@ function renderTables() {
              });
 
 
-            // --- BEGIN NEW MENU CODE ---
+            // --- MENU CODE ---
             const menuContainer = document.createElement('div');
             menuContainer.className = 'table-menu-container';
 
@@ -186,38 +196,48 @@ function renderTables() {
              // --- END NEW MENU CODE ---
 
             tableHeaderContainer.appendChild(tableTitle);
+            tableHeaderContainer.appendChild(collapseButton); // Add before title/menu
             tableHeaderContainer.appendChild(menuContainer); // Add menu container to header
+            tableDiv.appendChild(tableHeaderContainer); // Append header container
 
             // Create columns container
             const columnsDiv = document.createElement('div');
             columnsDiv.className = 'table-columns';
 
+            const relatedColumns = getColumnsWithRelation(table, tableName, schemaName);
+
             // Add columns
             table.columns.forEach(column => {
-                const columnDiv = document.createElement('div');
-                columnDiv.className = 'column';
-                columnDiv.id = `col-${schemaName}-${tableName}-${column}`;
-                columnDiv.textContent = column;
 
-                // Check if column is selected
-                const isSelected = state.selectedColumns.some(
-                    c => c.schema === schemaName && c.table === tableName && c.column === column
-                );
+                // Show column if:
+                // 1. Table is not collapsed OR
+                // 2. Table is collapsed AND this column is involved in a relation
+                if (!isCollapsed || relatedColumns.has(column)) {
+                    const columnDiv = document.createElement('div');
+                    columnDiv.className = 'column';
+                    columnDiv.id = `col-${schemaName}-${tableName}-${column}`;
+                    columnDiv.textContent = column;
 
-                if (isSelected) {
-                    columnDiv.classList.add('selected');
+                    // Check if column is selected
+                    const isSelected = state.selectedColumns.some(
+                        c => c.schema === schemaName && c.table === tableName && c.column === column
+                    );
+
+                    if (isSelected) {
+                        columnDiv.classList.add('selected');
+                    }
+
+                    // Attach click handler
+                    columnDiv.addEventListener('click', (e) => {
+                        // Prevent triggering drag when clicking column
+                        e.stopPropagation();
+                        handleColumnClick(schemaName, tableName, column);
+                    });
+                    columnsDiv.appendChild(columnDiv);
                 }
-
-                // Attach click handler
-                 columnDiv.addEventListener('click', (e) => {
-                    // Prevent triggering drag when clicking column
-                    e.stopPropagation();
-                    handleColumnClick(schemaName, tableName, column);
-                });
-                columnsDiv.appendChild(columnDiv);
             });
 
-            tableDiv.appendChild(tableHeaderContainer); // Append the new header container
+            
             tableDiv.appendChild(columnsDiv);
             DOM.tablesContainer.appendChild(tableDiv); // Append tables after schemas
         });
@@ -418,4 +438,47 @@ export function renderVisualization() {
     // Restore scroll position
     DOM.workspace.scrollLeft = state.lastScrollLeft;
     DOM.workspace.scrollTop = state.lastScrollTop;
+}
+
+function handleToggleColumns(event) {
+    event.stopPropagation(); // Prevent table drag
+    const button = event.currentTarget;
+    const schemaName = button.dataset.schema;
+    const tableName = button.dataset.table;
+
+    if (state.schemas[schemaName] && state.schemas[schemaName].tables[tableName]) {
+        // Toggle the state
+        state.schemas[schemaName].tables[tableName].columnsCollapsed = !state.schemas[schemaName].tables[tableName].columnsCollapsed;
+
+        // Re-render the visualization to reflect the change
+        renderVisualization();
+    } else {
+        console.error("Table not found in state:", schemaName, tableName);
+    }
+}
+
+function getColumnsWithRelation(table, tableName, schemaName){
+    const relatedColumns = new Set();
+
+    table.relations.forEach(rel => {
+        relatedColumns.add(rel.from.column);
+    });
+
+    Object.keys(state.schemas).forEach(otherSchemaName => {
+        Object.keys(state.schemas[otherSchemaName].tables).forEach(otherTableName => {
+            // Don't check relations within the same table against itself in this loop
+            if (otherSchemaName === schemaName && otherTableName === tableName) {
+                return;
+            }
+            const otherTable = state.schemas[otherSchemaName].tables[otherTableName];
+            otherTable.relations.forEach(rel => {
+                // If this relation points TO the current table, add the target column
+                if (rel.to.schema === schemaName && rel.to.table === tableName) {
+                    relatedColumns.add(rel.to.column);
+                }
+            });
+        });
+    });
+
+    return relatedColumns;
 }

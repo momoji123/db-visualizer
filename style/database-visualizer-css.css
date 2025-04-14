@@ -188,25 +188,43 @@ body {
 }
 
 .table-header-container {
-    display: flex; /* Use flexbox for title and menu */
-    justify-content: space-between; /* Space them out */
-    align-items: center; /* Vertically align */
+    display: flex; /* Ensures items align nicely */
+    align-items: center; /* Vertically center items */
     background-color: #3498db;
     color: white;
     padding: 0.5rem;
     font-weight: bold;
     cursor: move;
     user-select: none;
-    position: relative; /* Needed for dropdown positioning */
+    position: relative;
+}
+
+.table-collapse-button {
+    background: none;
+    border: 1px solid white; /* Simple border */
+    color: white;
+    padding: 0 5px; /* Adjust padding */
+    margin-right: 8px; /* Space between collapse and title */
+    font-size: 0.9rem; /* Adjust size */
+    line-height: 1.2; /* Adjust line height */
+    cursor: pointer;
+    border-radius: 3px;
+    min-width: 20px; /* Ensure minimum width */
+    text-align: center;
+}
+
+.table-collapse-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
 }
 
 .table-title {
-    flex-grow: 1; /* Allow title to take available space */
+    flex-grow: 1; /* Allow title to take space */
+    margin-right: 5px; /* Space between title and menu */
 }
 
 .table-menu-container {
-    position: relative; /* Context for absolute positioning of dropdown */
-    margin-left: 5px; /* Space between title and button */
+    position: relative;
+    flex-shrink: 0; /* Prevent shrinking */
 }
 
 .table-menu-button {
