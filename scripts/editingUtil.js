@@ -1,10 +1,9 @@
-import { updateColumnName, updateTableName, updateSchemaName, deleteColumn, state, deleteTable} from './state.js';
+import { updateColumnName, updateTableName, updateSchemaName, deleteColumn, state, deleteTable, deleteSchema} from './state.js';
 import { renderVisualization } from './renderer.js'
 
 let keydownEventTriggered = false;
 
 export function startEditing(element, schema, table, column) {
-    console.log("startEditing", state.tableVisibility)
     const currentText = element.textContent;
     const input = document.createElement('input');
     input.type = 'text';
@@ -36,7 +35,6 @@ export function startEditing(element, schema, table, column) {
 function handleEditKeyDown(event) {
     if (event.key === 'Enter') {
         keydownEventTriggered = true;
-        console.log("edit > enter > state", state.tableVisibility);
         finishEditing(event.target);
     } else if (event.key === 'Escape') {
         keydownEventTriggered = true;
@@ -47,7 +45,6 @@ function handleEditKeyDown(event) {
 function handleEditBlur(event) {
     if(!keydownEventTriggered){
         //triggered only if not enter or escape keydown event triggered
-        console.log("edit > blur > state", state.tableVisibility);
         finishEditing(event.target);
     }else{
         //reset variable
@@ -56,7 +53,6 @@ function handleEditBlur(event) {
 }
 
 function finishEditing(input) {
-    console.log(state.tableVisibility);
     const newValue = input.value.trim();
     
     const schema = input.dataset.schema!="null" ? input.dataset.schema : null;
@@ -82,7 +78,11 @@ function finishEditing(input) {
             }
         } else {
             console.log("trigger schema update", schema)
-            updateSchemaName(schema, newValue);
+            if(newValue){
+                updateSchemaName(schema, newValue);
+            }else{
+                deleteSchema(schema);
+            }
         }
     }
     

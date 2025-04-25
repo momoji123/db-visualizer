@@ -166,7 +166,6 @@ export function addRelationToSchema(from, to) {
      if (state.schemas[from.schema]?.tables[from.table]) {
 		if(findRelationIndex(from, to)==-1){
 			state.schemas[from.schema].tables[from.table].relations.push({ from, to });
-			console.log("Added relation:", from, "->", to);
 		}
     }
 }
@@ -401,6 +400,62 @@ export function updateTableName(schemaName, oldTableName, newTableName) {
    // Update visibility state
    initializeTableVisibility(state.schemas);
    window.TableFilter.updateTableList(state.schemas);
+}
+
+export function deleteSchema(oldSchemaName) {
+    const schema = state.schemas[oldSchemaName];
+    
+    if (!schema) return;
+    
+    // Create new schema with the new name
+    delete state.schemas[oldSchemaName];
+    
+    // Update table positions
+    Object.keys(state.tablePositions).forEach(key => {
+        if (key.startsWith(oldSchemaName + '.')) {
+            delete state.tablePositions[key];
+        }
+    });
+    
+    // Update selected tables
+    state.selectedTables.clear()
+    
+    // Update relations in all tables
+    Object.keys(state.schemas).forEach(schema => {
+        Object.keys(state.schemas[schema].tables).forEach(tableName => {
+            const tableObj = state.schemas[schema].tables[tableName];
+            state.schemas[schema].tables[tableName].relations = tableObj.relations.forEach(relation => {
+                // Update "from" relations
+                if (relation.from.schema === oldSchemaName) {
+                    return false;
+                }
+                
+                // Update "to" relations
+                if (relation.to.schema === oldSchemaName) {
+                    return false;
+                }
+
+                return true;
+            });
+        });
+    });
+    
+    // If the schema is being dragged, update the dragged schema name
+    if (state.isSchemaDragging && state.draggedSchemaName === oldSchemaName) {
+        state.draggedSchemaName = null;
+        state.isSchemaDragging = false
+    }
+
+    state.data = state.data.filter(dataItem => {
+        if (dataItem.schema == oldSchemaName) {
+            return false;
+        }
+        return true;
+    });
+
+    // Update visibility state
+    initializeTableVisibility(state.schemas);
+    window.TableFilter.updateTableList(state.schemas);
 }
 
 export function updateSchemaName(oldSchemaName, newSchemaName) {
