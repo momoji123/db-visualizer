@@ -135,14 +135,6 @@ export function saveScrollPosition(scrollLeft, scrollTop) {
     state.lastScrollTop = scrollTop;
 }
 
-export function addDataRow(row) {
-    state.data.push(row);
-}
-
-export function filterData(filterFn) {
-    state.data = state.data.filter(filterFn);
-}
-
 export function findRelationIndex(from, to) {
      return state.schemas[from.schema]?.tables[from.table]?.relations.findIndex(
         relation =>
@@ -230,14 +222,6 @@ export function deleteColumn(schemaName, tableName, oldColumnName){
         });
     });
 
-    
-    state.data = state.data.filter(dataItem => {
-        if (dataItem.schema == schemaName && dataItem.table_name == tableName && dataItem.column_name == oldColumnName) {
-            return false;
-        }
-        return true;
-    });
-
     // Update visibility state
     initializeTableVisibility(state.schemas);
     window.TableFilter.updateTableList(state.schemas);
@@ -273,12 +257,6 @@ export function updateColumnName(schemaName, tableName, oldColumnName, newColumn
                 }
             });
         });
-    });
-
-    state.data.forEach(dataItem => {
-        if (dataItem.schema == schemaName && dataItem.table_name == tableName && dataItem.column_name == oldColumnName) {
-            dataItem.column_name = newColumnName;
-        }
     });
 
     // Update visibility state
@@ -328,13 +306,6 @@ export function deleteTable(schemaName, oldTableName){
     if (state.tableVisibility[oldKey] !== undefined) {
         delete state.tableVisibility[oldKey];
     }
-
-    state.data = state.data.filter(dataItem => {
-        if (dataItem.schema == schemaName && dataItem.table_name == oldTableName) {
-            return false;
-        }
-        return true;
-   });
 
    // Update visibility state
    initializeTableVisibility(state.schemas);
@@ -391,12 +362,6 @@ export function updateTableName(schemaName, oldTableName, newTableName) {
         delete state.tableVisibility[oldKey];
     }
 
-    state.data.forEach(dataItem => {
-        if (dataItem.schema == schemaName && dataItem.table_name == oldTableName) {
-            dataItem.table_name = newTableName;
-        }
-   });
-
    // Update visibility state
    initializeTableVisibility(state.schemas);
    window.TableFilter.updateTableList(state.schemas);
@@ -445,13 +410,6 @@ export function deleteSchema(oldSchemaName) {
         state.draggedSchemaName = null;
         state.isSchemaDragging = false
     }
-
-    state.data = state.data.filter(dataItem => {
-        if (dataItem.schema == oldSchemaName) {
-            return false;
-        }
-        return true;
-    });
 
     // Update visibility state
     initializeTableVisibility(state.schemas);
@@ -502,12 +460,6 @@ export function updateSchemaName(oldSchemaName, newSchemaName) {
     if (state.isSchemaDragging && state.draggedSchemaName === oldSchemaName) {
         state.draggedSchemaName = newSchemaName;
     }
-
-    state.data.forEach(dataItem => {
-        if (dataItem.schema == oldSchemaName) {
-            dataItem.schema = newSchemaName;
-        }
-    });
 
     // Update visibility state
     initializeTableVisibility(state.schemas);

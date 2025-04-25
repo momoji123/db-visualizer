@@ -24,7 +24,7 @@ export function updateSelectionInfo() {
 }
 
 export function updateStatus() {
-    if (state.data.length > 0) {
+    if (Object.keys(state.schemas).length > 0) {
         const schemaCount = Object.keys(state.schemas).length;
         const tableCount = Object.values(state.schemas).reduce((count, schema) =>
             count + Object.keys(schema.tables).length, 0);

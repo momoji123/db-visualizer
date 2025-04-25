@@ -42,16 +42,33 @@ export function handleFileUpload(event) {
 }
 
 export function handleExport() {
-    const csvContent =
-        "schema;table_name;column_name;relation_schema;relation_table_name;relation_column_name;pos_x;pos_y;pos_z\n" +
-        state.data.map(row => {
-            // Retrieve x, y, z from tablePositions
-            const key = `${row.schema}.${row.table_name}`;
-            const pos = state.tablePositions[key] || { x: 0, y: 0, z: state.minTableZIndex }; // Default position
-            const visibility = state.tableVisibility?.[key] !== false ? 'true' : 'false'; // Default to true if undefined
+    let lines = [];
+    Object.keys(state.schemas).forEach(schemaName=>{
+        Object.keys(state.schemas[schemaName].tables).forEach(tableName=>{
+            let table = state.schemas[schemaName].tables[tableName];
+            table.columns.forEach(col=>{
+                const key = `${schemaName}.${tableName}`;
+                const pos = state.tablePositions[key] || { x: 0, y: 0, z: state.minTableZIndex }; // Default position
+                const visibility = state.tableVisibility?.[key] !== false ? 'true' : 'false'; // Default to true if undefined
 
-            return `${row.schema};${row.table_name};${row.column_name};${row.relation_schema || ''};${row.relation_table_name || ''};${row.relation_column_name || ''};${pos.x};${pos.y};${pos.z};${visibility}`;
-        }).join('\n');
+                let relations = table.relations.filter(relation => relation.from.column === col);
+                if(relations.length){
+                    relations.forEach(relation=>{
+                        lines.push(`${schemaName};${tableName};${col};${relation.to.schema || ''};${relation.to.table || ''};${relation.to.column || ''};${pos.x};${pos.y};${pos.z};${visibility}`);
+                    })
+                }else{
+                    lines.push(`${schemaName};${tableName};${col};${''};${''};${''};${pos.x};${pos.y};${pos.z};${visibility}\n`);
+                }
+                
+            })
+        })
+    });
+
+    const csvContent =
+    "schema;table_name;column_name;relation_schema;relation_table_name;relation_column_name;pos_x;pos_y;pos_z\n" + 
+    lines.reduce((prev,curr)=>{
+        return prev + '\n' + curr;
+    });
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
