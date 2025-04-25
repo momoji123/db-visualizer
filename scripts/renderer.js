@@ -4,8 +4,13 @@ import { state, saveScrollPosition, isTableSelected } from './state.js';
 import { handleDragStart, handleSchemaDragStart } from './dragDrop.js';
 import { handleColumnClick } from './eventListeners.js'; // Changed from relationManager
 import { removeRelation } from './relationManager.js';
+import { startEditing } from './editingUtil.js';
 // Assuming TableFilter is global or imported
 // import { TableFilter } from './table-filter.js';
+
+let clickTimer = null;
+const delay = 125;
+let isLeftMouseButtonDown = false;
 
 function renderSchemas() {
      Object.keys(state.schemas).forEach(schemaName => {
@@ -55,24 +60,46 @@ function renderSchemas() {
              schemaArea.style.height = `${height}px`;
              schemaArea.dataset.schema = schemaName; // Add data attribute for identification
 			 
-			// <-- Add MouseDown Listener for Schema Dragging -->
-			schemaArea.addEventListener('mousedown', (e) => {
-                // Only trigger schema drag if clicking directly on the schema area,
-                // not on a table element that might be inside its bounds visually.
-                if (e.target === schemaArea) {
-                     handleSchemaDragStart(e, schemaName);
-                }
-            });
-
             // Create schema title inside the schema area
             const schemaTitle = document.createElement('div');
             schemaTitle.className = 'schema-title';
             schemaTitle.textContent = schemaName;
-             // Position title relative to the schema area borders
-             schemaTitle.style.position = 'absolute';
-             schemaTitle.style.top = '15px'; // Adjusted position
-             schemaTitle.style.left = '25px';// Adjusted position
+            // Position title relative to the schema area borders
+            schemaTitle.style.position = 'absolute';
+            schemaTitle.style.top = '15px'; // Adjusted position
+            schemaTitle.style.left = '25px';// Adjusted position
 
+            schemaArea.addEventListener('mouseup', (e) => {
+                // Check specifically for the left mouse button
+                if (e.button === 0) {
+                    isLeftMouseButtonDown = false;
+                }
+            });
+            // <-- Add MouseDown Listener for Schema Dragging -->
+			schemaArea.addEventListener('mousedown', (e) => {
+                // Only trigger schema drag if clicking directly on the schema area,
+                // not on a table element that might be inside its bounds visually.
+                if (e.button === 0) {
+                    isLeftMouseButtonDown = true;
+                }
+                if (e.target === schemaArea) {
+                    clearTimeout(clickTimer);
+                    let currentTarget = e.currentTarget;
+                    clickTimer = setTimeout(() => {
+                        if(isLeftMouseButtonDown){
+                            // This code will run if no second click (double-click) happens within the delay
+                            handleSchemaDragStart(e, currentTarget, schemaName);
+                        }
+                    }, delay);
+                }
+            });
+
+            // For schema title double-click
+            schemaArea.addEventListener('dblclick', (e) => {
+                clearTimeout(clickTimer);
+                e.stopPropagation();
+                startEditing(e.target, schemaName, null, null);
+            });
 
              schemaArea.appendChild(schemaTitle);
 
@@ -126,13 +153,19 @@ function renderTables() {
             const tableTitle = document.createElement('span');
             tableTitle.className = 'table-title';
             tableTitle.textContent = tableName;
+            // For table title double-click
+            tableTitle.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                startEditing(e.target, schemaName, tableName, null);
+            });
+
             // Attach drag start handler directly to the container or title
             tableHeaderContainer.addEventListener('mousedown', (e) => {
                  // Prevent drag if clicking on the menu button itself
                  if (!e.target.closest('.table-menu-button')) {
                     handleDragStart(e, schemaName, tableName);
                  }
-             });
+            });
 
 
             // --- MENU CODE ---
@@ -143,12 +176,12 @@ function renderTables() {
             menuButton.className = 'table-menu-button';
             menuButton.innerHTML = '&#x22EE;'; // Vertical ellipsis icon (or use an SVG)
             menuButton.title = 'Table options';
-             menuButton.addEventListener('click', (e) => {
-                 e.stopPropagation(); // Prevent table drag
-                 // Toggle the dropdown visibility
-                 const dropdown = menuContainer.querySelector('.table-menu-dropdown');
-                 dropdown.classList.toggle('show');
-             });
+            menuButton.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent table drag
+                // Toggle the dropdown visibility
+                const dropdown = menuContainer.querySelector('.table-menu-dropdown');
+                dropdown.classList.toggle('show');
+            });
 
 
             const menuDropdown = document.createElement('div');
@@ -227,12 +260,26 @@ function renderTables() {
                         columnDiv.classList.add('selected');
                     }
 
+                    // For column double-click (in the column event handler)
+                    columnDiv.addEventListener('dblclick', (e) => {
+                        clearTimeout(clickTimer);
+
+                        e.stopPropagation();
+                        startEditing(e.target, schemaName, tableName, column);
+                    });
+
                     // Attach click handler
                     columnDiv.addEventListener('click', (e) => {
                         // Prevent triggering drag when clicking column
                         e.stopPropagation();
-                        handleColumnClick(schemaName, tableName, column);
+
+                        clearTimeout(clickTimer);
+                        clickTimer = setTimeout(() => {
+                            // This code will run if no second click (double-click) happens within the delay
+                            handleColumnClick(schemaName, tableName, column);
+                        }, delay);
                     });
+
                     columnsDiv.appendChild(columnDiv);
                 }
             });

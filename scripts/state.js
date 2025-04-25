@@ -1,4 +1,3 @@
-// scripts/state.js
 export const state = {
     data: [],
     schemas: {},
@@ -200,4 +199,182 @@ export function isTableSelected(key) {
 
 export function getSelectedTables() {
     return Array.from(state.selectedTables); // Return as an array
+}
+
+export function updateColumnName(schemaName, tableName, oldColumnName, newColumnName) {
+    const table = state.schemas[schemaName]?.tables[tableName];
+    if (!table) return;
+    
+    // Update column names in the table
+    const columnIndex = table.columns.indexOf(oldColumnName);
+    if (columnIndex !== -1) {
+        table.columns[columnIndex] = newColumnName;
+    }
+    
+    // Update column names in relations within this table
+    table.relations.forEach(relation => {
+        if (relation.from.column === oldColumnName) {
+            relation.from.column = newColumnName;
+        }
+    });
+    
+    // Update column names in relations from other tables pointing to this column
+    Object.keys(state.schemas).forEach(schema => {
+        Object.keys(state.schemas[schema].tables).forEach(otherTable => {
+            const otherTableObj = state.schemas[schema].tables[otherTable];
+            otherTableObj.relations.forEach(relation => {
+                if (relation.to.schema === schemaName && 
+                    relation.to.table === tableName && 
+                    relation.to.column === oldColumnName) {
+                    relation.to.column = newColumnName;
+                }
+            });
+        });
+    });
+
+    state.data.forEach(dataItem => {
+        // Assuming data items are structured as { schemaName: { tableName: { columnName: value } } }
+        if (dataItem[schemaName]?.[tableName]?.[oldColumnName] !== undefined) {
+            dataItem[schemaName][tableName][newColumnName] = dataItem[schemaName][tableName][oldColumnName];
+            delete dataItem[schemaName][tableName][oldColumnName];
+        }
+    });
+
+    window.TableFilter.updateTableList(state.schemas);
+}
+
+export function updateTableName(schemaName, oldTableName, newTableName) {
+    const schema = state.schemas[schemaName];
+    if (!schema) return;
+    
+    // Make a copy of the table
+    const table = schema.tables[oldTableName];
+    if (!table) return;
+    
+    // Delete old table and add the new one
+    delete schema.tables[oldTableName];
+    schema.tables[newTableName] = table;
+    
+    // Update positions
+    const oldKey = `${schemaName}.${oldTableName}`;
+    const newKey = `${schemaName}.${newTableName}`;
+    if (state.tablePositions[oldKey]) {
+        state.tablePositions[newKey] = state.tablePositions[oldKey];
+        delete state.tablePositions[oldKey];
+    }
+    
+    // Update selected tables if any
+    if (state.selectedTables.has(oldKey)) {
+        state.selectedTables.delete(oldKey);
+        state.selectedTables.add(newKey);
+    }
+    
+    // Update relations in all tables referring to this table
+    Object.keys(state.schemas).forEach(schema => {
+        Object.keys(state.schemas[schema].tables).forEach(tableName => {
+            const tableObj = state.schemas[schema].tables[tableName];
+            tableObj.relations.forEach(relation => {
+                // Update "from" relations
+                if (relation.from.schema === schemaName && relation.from.table === oldTableName) {
+                    relation.from.table = newTableName;
+                }
+                
+                // Update "to" relations
+                if (relation.to.schema === schemaName && relation.to.table === oldTableName) {
+                    relation.to.table = newTableName;
+                }
+            });
+        });
+    });
+    
+    // Update visibility state
+    if (state.tableVisibility[oldKey] !== undefined) {
+        state.tableVisibility[newKey] = state.tableVisibility[oldKey];
+        delete state.tableVisibility[oldKey];
+    }
+
+    state.data.forEach(dataItem => {
+        // Assuming data items are structured as { schemaName: { tableName: { columnName: value } } }
+       if (dataItem[schemaName]?.[oldTableName] !== undefined) {
+           dataItem[schemaName][newTableName] = dataItem[schemaName][oldTableName];
+           delete dataItem[schemaName][oldTableName];
+       }
+   });
+
+   window.TableFilter.updateTableList(state.schemas);
+}
+
+export function updateSchemaName(oldSchemaName, newSchemaName) {
+
+    const schema = state.schemas[oldSchemaName];
+    
+    if (!schema) return;
+
+    // Create new schema with the new name
+    state.schemas[newSchemaName] = schema;
+    delete state.schemas[oldSchemaName];
+    
+    // Update table positions
+    Object.keys(state.tablePositions).forEach(key => {
+        if (key.startsWith(oldSchemaName + '.')) {
+            const tableName = key.substring(oldSchemaName.length + 1);
+            const newKey = `${newSchemaName}.${tableName}`;
+            state.tablePositions[newKey] = state.tablePositions[key];
+            delete state.tablePositions[key];
+        }
+    });
+    
+    // Update selected tables
+    const selectedTables = Array.from(state.selectedTables);
+    selectedTables.forEach(key => {
+        if (key.startsWith(oldSchemaName + '.')) {
+            const tableName = key.substring(oldSchemaName.length + 1);
+            const newKey = `${newSchemaName}.${tableName}`;
+            state.selectedTables.delete(key);
+            state.selectedTables.add(newKey);
+        }
+    });
+    
+    // Update relations in all tables
+    Object.keys(state.schemas).forEach(schema => {
+        Object.keys(state.schemas[schema].tables).forEach(tableName => {
+            const tableObj = state.schemas[schema].tables[tableName];
+            tableObj.relations.forEach(relation => {
+                // Update "from" relations
+                if (relation.from.schema === oldSchemaName) {
+                    relation.from.schema = newSchemaName;
+                }
+                
+                // Update "to" relations
+                if (relation.to.schema === oldSchemaName) {
+                    relation.to.schema = newSchemaName;
+                }
+            });
+        });
+    });
+    
+    // Update visibility state
+    Object.keys(state.tableVisibility).forEach(key => {
+        if (key.startsWith(oldSchemaName + '.')) {
+            const tableName = key.substring(oldSchemaName.length + 1);
+            const newKey = `${newSchemaName}.${tableName}`;
+            state.tableVisibility[newKey] = state.tableVisibility[key];
+            delete state.tableVisibility[key];
+        }
+    });
+    
+    // If the schema is being dragged, update the dragged schema name
+    if (state.isSchemaDragging && state.draggedSchemaName === oldSchemaName) {
+        state.draggedSchemaName = newSchemaName;
+    }
+
+    state.data.forEach(dataItem => {
+        console.log(dataItem.schema == oldSchemaName)
+        if (dataItem.schema == oldSchemaName) {
+            dataItem.schema = newSchemaName;
+        }
+    });
+
+    
+    window.TableFilter.updateTableList(state.schemas);
 }

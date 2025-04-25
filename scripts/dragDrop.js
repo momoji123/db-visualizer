@@ -193,14 +193,15 @@ export function handleDragEnd(e) {
     }
 }
 
-export function handleSchemaDragStart(e, schemaName) {
+export function handleSchemaDragStart(e, currentTarget, schemaName) {
      // Prevent drag if a table drag is somehow active
      if (state.isDragging) return;
 
     e.preventDefault();
     e.stopPropagation(); // Prevent triggering table drag if header is overlapped
 
-    const schemaAreaElem = e.currentTarget; // The schema area div
+    const schemaAreaElem = e.currentTarget ? e.currentTarget : currentTarget; // The schema area div
+
     const workspaceRect = DOM.workspace.getBoundingClientRect();
 
      // Calculate initial mouse position relative to the workspace, including scroll

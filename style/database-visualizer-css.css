@@ -322,3 +322,14 @@ body {
     font-size: 0.875rem;
     color: #7f8c8d;
 }
+
+.inline-editor {
+    font-family: inherit;
+    font-size: inherit;
+    background: white;
+    border-radius: 3px;
+}
+
+.schema-title, .table-title, .column {
+    user-select: none;
+}
