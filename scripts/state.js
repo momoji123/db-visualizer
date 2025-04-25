@@ -199,7 +199,53 @@ export function getSelectedTables() {
     return Array.from(state.selectedTables); // Return as an array
 }
 
+export function deleteColumn(schemaName, tableName, oldColumnName){
+    const table = state.schemas[schemaName]?.tables[tableName];
+    if (!table) return;
+    
+    // delete column names in the table
+    let toDeleteIdx = table.columns.indexOf(oldColumnName);
+    table.columns.splice(toDeleteIdx, 1);
+    
+    // delete column in relations within this table
+    table.relations = table.relations.filter(relation => {
+        if (relation.from.column === oldColumnName) {
+            //exclude relation if contain old column
+            return false;
+        }
+        return true;
+    });
+    
+    // delete column in relations from other tables pointing to this column
+    Object.keys(state.schemas).forEach(schema => {
+        Object.keys(state.schemas[schema].tables).forEach(otherTable => {
+            const otherTableObj = state.schemas[schema].tables[otherTable];
+            state.schemas[schema].tables[otherTable].relations = otherTableObj.relations.filter(relation => {
+                if (relation.to.schema === schemaName && 
+                    relation.to.table === tableName && 
+                    relation.to.column === oldColumnName) {
+                        return false;
+                }
+                return true;
+            });
+        });
+    });
+
+    
+    state.data = state.data.filter(dataItem => {
+        if (dataItem.schema == schemaName && dataItem.table_name == tableName && dataItem.column_name == oldColumnName) {
+            return false;
+        }
+        return true;
+    });
+
+    // Update visibility state
+    initializeTableVisibility(state.schemas);
+    window.TableFilter.updateTableList(state.schemas);
+}
+
 export function updateColumnName(schemaName, tableName, oldColumnName, newColumnName) {
+    
     const table = state.schemas[schemaName]?.tables[tableName];
     if (!table) return;
     
@@ -207,7 +253,7 @@ export function updateColumnName(schemaName, tableName, oldColumnName, newColumn
     const columnIndex = table.columns.indexOf(oldColumnName);
     if (columnIndex !== -1) {
         table.columns[columnIndex] = newColumnName;
-    }
+    } 
     
     // Update column names in relations within this table
     table.relations.forEach(relation => {
@@ -231,16 +277,69 @@ export function updateColumnName(schemaName, tableName, oldColumnName, newColumn
     });
 
     state.data.forEach(dataItem => {
-        // Assuming data items are structured as { schemaName: { tableName: { columnName: value } } }
-        if (dataItem[schemaName]?.[tableName]?.[oldColumnName] !== undefined) {
-            dataItem[schemaName][tableName][newColumnName] = dataItem[schemaName][tableName][oldColumnName];
-            delete dataItem[schemaName][tableName][oldColumnName];
+        if (dataItem.schema == schemaName && dataItem.table_name == tableName && dataItem.column_name == oldColumnName) {
+            dataItem.column_name = newColumnName;
         }
     });
 
     // Update visibility state
     initializeTableVisibility(state.schemas);
     window.TableFilter.updateTableList(state.schemas);
+}
+
+export function deleteTable(schemaName, oldTableName){
+    const schema = state.schemas[schemaName];
+    if (!schema) return;
+    
+    // Make a copy of the table
+    const table = schema.tables[oldTableName];
+    if (!table) return;
+    
+    // Delete old table and add the new one
+    delete schema.tables[oldTableName];
+    
+    // delete positions
+    const oldKey = `${schemaName}.${oldTableName}`;
+    if (state.tablePositions[oldKey]) {
+        delete state.tablePositions[oldKey];
+    }
+    
+    // delete selected tables if any
+    if (state.selectedTables.has(oldKey)) {
+        state.selectedTables.delete(oldKey);
+    }
+    
+    // delete relations in all tables referring to this table
+    Object.keys(state.schemas).forEach(schema => {
+        Object.keys(state.schemas[schema].tables).forEach(tableName => {
+            const tableObj = state.schemas[schema].tables[tableName];
+            state.schemas[schema].tables[tableName].relations = tableObj.relations.filter(relation => {
+                if (relation.from.schema === schemaName && relation.from.table === oldTableName) {
+                    return false;
+                }
+                if (relation.to.schema === schemaName && relation.to.table === oldTableName) {
+                    return false;
+                }
+                return true;
+            });
+        });
+    });
+    
+    // delete visibility state
+    if (state.tableVisibility[oldKey] !== undefined) {
+        delete state.tableVisibility[oldKey];
+    }
+
+    state.data = state.data.filter(dataItem => {
+        if (dataItem.schema == schemaName && dataItem.table_name == oldTableName) {
+            return false;
+        }
+        return true;
+   });
+
+   // Update visibility state
+   initializeTableVisibility(state.schemas);
+   window.TableFilter.updateTableList(state.schemas);
 }
 
 export function updateTableName(schemaName, oldTableName, newTableName) {
@@ -294,11 +393,9 @@ export function updateTableName(schemaName, oldTableName, newTableName) {
     }
 
     state.data.forEach(dataItem => {
-        // Assuming data items are structured as { schemaName: { tableName: { columnName: value } } }
-       if (dataItem[schemaName]?.[oldTableName] !== undefined) {
-           dataItem[schemaName][newTableName] = dataItem[schemaName][oldTableName];
-           delete dataItem[schemaName][oldTableName];
-       }
+        if (dataItem.schema == schemaName && dataItem.table_name == oldTableName) {
+            dataItem.table_name = newTableName;
+        }
    });
 
    // Update visibility state
@@ -352,7 +449,6 @@ export function updateSchemaName(oldSchemaName, newSchemaName) {
     }
 
     state.data.forEach(dataItem => {
-        console.log(dataItem.schema == oldSchemaName)
         if (dataItem.schema == oldSchemaName) {
             dataItem.schema = newSchemaName;
         }

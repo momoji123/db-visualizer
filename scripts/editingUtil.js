@@ -1,4 +1,4 @@
-import { updateColumnName, updateTableName, updateSchemaName, state} from './state.js';
+import { updateColumnName, updateTableName, updateSchemaName, deleteColumn, state, deleteTable} from './state.js';
 import { renderVisualization } from './renderer.js'
 
 let keydownEventTriggered = false;
@@ -58,10 +58,6 @@ function handleEditBlur(event) {
 function finishEditing(input) {
     console.log(state.tableVisibility);
     const newValue = input.value.trim();
-    if (newValue === '') {
-        cancelEditing(input);
-        return;
-    }
     
     const schema = input.dataset.schema!="null" ? input.dataset.schema : null;
     const table = input.dataset.table!="null" ? input.dataset.table : null;
@@ -71,10 +67,19 @@ function finishEditing(input) {
         // Update the appropriate name based on what was edited
         if (column) {
             console.log("trigger column update", column)
-            updateColumnName(schema, table, column, newValue);
+            if(newValue){
+                updateColumnName(schema, table, column, newValue);
+            }else{
+                deleteColumn(schema, table, column);
+            }
+            
         } else if (table) {
             console.log("trigger table update", table)
-            updateTableName(schema, table, newValue);
+            if(newValue){
+                updateTableName(schema, table, newValue);
+            }else{
+                deleteTable(schema, table);
+            }
         } else {
             console.log("trigger schema update", schema)
             updateSchemaName(schema, newValue);
