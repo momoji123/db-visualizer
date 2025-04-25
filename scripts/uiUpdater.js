@@ -25,10 +25,20 @@ export function updateSelectionInfo() {
 
 export function updateStatus() {
     if (Object.keys(state.schemas).length > 0) {
-        const schemaCount = Object.keys(state.schemas).length;
-        const tableCount = Object.values(state.schemas).reduce((count, schema) =>
-            count + Object.keys(schema.tables).length, 0);
-        DOM.statusInfo.textContent = `${schemaCount} schemas, ${tableCount} tables, ${state.data.length} items loaded`;
+        let schemaCount = 0;
+        let tableCount = 0;
+        let columnCount = 0;
+
+        Object.values(state.schemas).forEach(schema=>{
+            Object.values(schema.tables).forEach(table=>{
+                table.columns.forEach(col=>{
+                    columnCount += 1;
+                })
+                tableCount += 1;
+            })
+            schemaCount += 1;
+        })
+        DOM.statusInfo.textContent = `${schemaCount} schemas, ${tableCount} tables, ${columnCount} columns loaded`;
     } else {
         DOM.statusInfo.textContent = 'No data loaded';
     }
