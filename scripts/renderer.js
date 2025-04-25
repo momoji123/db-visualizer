@@ -155,16 +155,38 @@ function renderTables() {
             tableTitle.textContent = tableName;
             // For table title double-click
             tableTitle.addEventListener('dblclick', (e) => {
-                e.stopPropagation();
-                startEditing(e.target, schemaName, tableName, null);
+                if (!e.target.closest('.table-menu-button')) {
+                    clearTimeout(clickTimer);
+                    e.stopPropagation();
+                    startEditing(e.target, schemaName, tableName, null);
+                }
+            });
+
+            tableHeaderContainer.addEventListener('mouseup', (e) => {
+                // Check specifically for the left mouse button
+                if (e.button === 0) {
+                    isLeftMouseButtonDown = false;
+                }
             });
 
             // Attach drag start handler directly to the container or title
             tableHeaderContainer.addEventListener('mousedown', (e) => {
-                 // Prevent drag if clicking on the menu button itself
-                 if (!e.target.closest('.table-menu-button')) {
-                    handleDragStart(e, schemaName, tableName);
-                 }
+                if (e.button === 0) {
+                    isLeftMouseButtonDown = true;
+                }
+
+                // Prevent drag if clicking on the menu button itself
+                if (!e.target.closest('.table-menu-button')) {
+                clearTimeout(clickTimer);
+                let currentTarget = e.currentTarget;
+                clickTimer = setTimeout(() => {
+                    if(isLeftMouseButtonDown){
+                        // This code will run if no second click (double-click) happens within the delay
+                        handleDragStart(e, schemaName, tableName);
+                    }
+                }, delay);
+                
+                }
             });
 
 

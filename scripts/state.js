@@ -2,11 +2,11 @@ export const state = {
     data: [],
     schemas: {},
     selectedColumns: [],
-    selectedTables: new Set(), // <-- ADD THIS LINE
+    selectedTables: new Set(),
     isDragging: false,
     draggedTable: null,
     dragStartMousePos: { x: 0, y: 0 },
-    initialDragPositions: {}, // <-- ADD THIS LINE (To store positions of all selected tables on drag start)
+    initialDragPositions: {},
 	isSchemaDragging: false,
     draggedSchemaName: null,
     schemaDragOffset: { x: 0, y: 0 },
@@ -19,14 +19,12 @@ export const state = {
     tableVisibility: {},
 };
 
-export function setTableVisibility(key, isVisible) {
-    state.tableVisibility[key] = isVisible;
-}
-
 export function updateTableVisibilityFromFilter(visibleTableSet) {
     // Update the tableVisibility based on the filter selection
     Object.keys(state.tableVisibility).forEach(key => {
+        const [schemaName, tableName] = key.split('.');
         state.tableVisibility[key] = visibleTableSet.has(key);
+        state.schemas[schemaName].tables[tableName].visible = state.tableVisibility[key];
     });
 }
 
@@ -70,7 +68,7 @@ export function updateTableZPositionToTop(key){
         state.tablePositions[key].z = newMaxZ;
     }
 }
-// Make sure updateTableZPositionToTop is globally available
+// Make sure updateTableVisibilityFromFilter is globally available
 window.updateTableVisibilityFromFilter = updateTableVisibilityFromFilter;
 
 export function setData(newData) {
@@ -240,6 +238,8 @@ export function updateColumnName(schemaName, tableName, oldColumnName, newColumn
         }
     });
 
+    // Update visibility state
+    initializeTableVisibility(state.schemas);
     window.TableFilter.updateTableList(state.schemas);
 }
 
@@ -301,15 +301,16 @@ export function updateTableName(schemaName, oldTableName, newTableName) {
        }
    });
 
+   // Update visibility state
+   initializeTableVisibility(state.schemas);
    window.TableFilter.updateTableList(state.schemas);
 }
 
 export function updateSchemaName(oldSchemaName, newSchemaName) {
-
     const schema = state.schemas[oldSchemaName];
     
     if (!schema) return;
-
+    
     // Create new schema with the new name
     state.schemas[newSchemaName] = schema;
     delete state.schemas[oldSchemaName];
@@ -325,15 +326,7 @@ export function updateSchemaName(oldSchemaName, newSchemaName) {
     });
     
     // Update selected tables
-    const selectedTables = Array.from(state.selectedTables);
-    selectedTables.forEach(key => {
-        if (key.startsWith(oldSchemaName + '.')) {
-            const tableName = key.substring(oldSchemaName.length + 1);
-            const newKey = `${newSchemaName}.${tableName}`;
-            state.selectedTables.delete(key);
-            state.selectedTables.add(newKey);
-        }
-    });
+    state.selectedTables.clear()
     
     // Update relations in all tables
     Object.keys(state.schemas).forEach(schema => {
@@ -353,16 +346,6 @@ export function updateSchemaName(oldSchemaName, newSchemaName) {
         });
     });
     
-    // Update visibility state
-    Object.keys(state.tableVisibility).forEach(key => {
-        if (key.startsWith(oldSchemaName + '.')) {
-            const tableName = key.substring(oldSchemaName.length + 1);
-            const newKey = `${newSchemaName}.${tableName}`;
-            state.tableVisibility[newKey] = state.tableVisibility[key];
-            delete state.tableVisibility[key];
-        }
-    });
-    
     // If the schema is being dragged, update the dragged schema name
     if (state.isSchemaDragging && state.draggedSchemaName === oldSchemaName) {
         state.draggedSchemaName = newSchemaName;
@@ -375,6 +358,7 @@ export function updateSchemaName(oldSchemaName, newSchemaName) {
         }
     });
 
-    
+    // Update visibility state
+    initializeTableVisibility(state.schemas);
     window.TableFilter.updateTableList(state.schemas);
 }

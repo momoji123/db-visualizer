@@ -1,9 +1,12 @@
-import { updateColumnName, updateTableName, updateSchemaName } from './state.js';
+import { updateColumnName, updateTableName, updateSchemaName, state} from './state.js';
+import { renderVisualization } from './renderer.js'
+
+let keydownEventTriggered = false;
 
 export function startEditing(element, schema, table, column) {
+    console.log("startEditing", state.tableVisibility)
     const currentText = element.textContent;
     const input = document.createElement('input');
-    console.log(input.dataset)
     input.type = 'text';
     input.value = currentText;
     input.className = 'inline-editor';
@@ -32,17 +35,28 @@ export function startEditing(element, schema, table, column) {
 
 function handleEditKeyDown(event) {
     if (event.key === 'Enter') {
+        keydownEventTriggered = true;
+        console.log("edit > enter > state", state.tableVisibility);
         finishEditing(event.target);
     } else if (event.key === 'Escape') {
+        keydownEventTriggered = true;
         cancelEditing(event.target);
     }
 }
 
 function handleEditBlur(event) {
-    finishEditing(event.target);
+    if(!keydownEventTriggered){
+        //triggered only if not enter or escape keydown event triggered
+        console.log("edit > blur > state", state.tableVisibility);
+        finishEditing(event.target);
+    }else{
+        //reset variable
+        keydownEventTriggered = false;
+    }
 }
 
 function finishEditing(input) {
+    console.log(state.tableVisibility);
     const newValue = input.value.trim();
     if (newValue === '') {
         cancelEditing(input);
@@ -74,6 +88,8 @@ function finishEditing(input) {
     // Remove event listeners
     input.removeEventListener('keydown', handleEditKeyDown);
     input.removeEventListener('blur', handleEditBlur);
+
+    renderVisualization();
 }
 
 function cancelEditing(input) {
@@ -84,4 +100,5 @@ function cancelEditing(input) {
     // Remove event listeners
     input.removeEventListener('keydown', handleEditKeyDown);
     input.removeEventListener('blur', handleEditBlur);
+    renderVisualization();
 }
