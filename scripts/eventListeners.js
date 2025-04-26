@@ -2,7 +2,7 @@
 import * as DOM from './domElements.js';
 import { state, addSelectedColumn, clearSelectedColumns, removeSelectedColumn } from './state.js';
 import { handleFileUpload, handleExport } from './fileHandlers.js';
-import { renderVisualization } from './renderer.js';
+import { renderVisualization, renderTables } from './renderer.js';
 // dragDrop handlers are added/removed dynamically in dragDrop.js
 import { addRelation, getRelatedTablesTo, getRelatedTablesFrom } from './relationManager.js';
 import { updateSelectionInfo } from './uiUpdater.js';
@@ -60,28 +60,34 @@ export function setupInitialListeners() {
 
     // Note: Drag/drop listeners for tables are added in dragDrop.js on mousedown
     // Note: Column click listeners are added dynamically in renderer.js
+    // Note: Schema menu 'Add Table' listener is added directly in renderer.js
 
-     // Add listener for window resize
-     window.addEventListener('resize', resizeWorkspace);
+    // Add listener for window resize
+    window.addEventListener('resize', resizeWorkspace);
 
 
-     // Listener for filter changes (if using the custom event from table-filter.js)
-     document.addEventListener('filtersApplied', renderVisualization);
+    // Listener for filter changes (if using the custom event from table-filter.js)
+    document.addEventListener('filtersApplied', renderVisualization);
 
-     // Listen on the container where tables are added
-     DOM.tablesContainer.addEventListener('click', handleTableMenuAction);
+    // Listen on the container where tables are added
+    DOM.tablesContainer.addEventListener('click', handleTableMenuAction);
 
-     // Global click listener to close menus (moved here for better organization)
-     document.addEventListener('click', (e) => {
-        // If the click is outside a menu container, close all open menus
-        if (!e.target.closest('.table-menu-container')) {
-            document.querySelectorAll('.table-menu-dropdown.show').forEach(dropdown => {
-                dropdown.classList.remove('show');
-            });
+    // Global click listener to close *all* menus
+    document.addEventListener('click', (e) => {
+        // If the click is outside any menu container, close all open menus
+        if (!e.target.closest('.table-menu-container') && !e.target.closest('.schema-menu-container')) {
+            closeAllMenus();
         }
-    }, true); // Use capture phase to catch clicks early
+    }, true); // Use capture phase
 
     console.log("Initial event listeners set up.");
+}
+
+// Helper function to close all open menus (can be called from anywhere)
+export function closeAllMenus() {
+    document.querySelectorAll('.table-menu-dropdown.show, .schema-menu-dropdown.show').forEach(dropdown => {
+        dropdown.classList.remove('show');
+    });
 }
 
 // Handles clicks on the table menu items
@@ -127,7 +133,18 @@ export function handleTableMenuAction(event) {
             const updatedVisibleKeys = currentlyVisibleKeys.filter(key => key !== keyToHide);
             // Apply the new list (which excludes the hidden table)
             window.TableFilter.filterByTableList(updatedVisibleKeys);
-        }else {
+        } else if (action === 'add-column' && schema && table){
+            //find new column name. if exsist, add incremented number after it ex: "New Column", "New Column 2", "New Column 3", etc
+            let i = 1;
+            let newColumnName = `New Column ${i}`;
+            while (state.schemas[schema].tables[table].columns.includes(newColumnName)) {   
+                i++;
+                newColumnName = `New Column ${i}`;
+            }
+            state.schemas[schema].tables[table].columns.push(newColumnName);
+            renderTables()
+        }
+        else {
             console.warn(`Unknown or incomplete action: ${action} for ${schema}.${table}`);
         }
          // Add more 'else if' blocks for future actions

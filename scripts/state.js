@@ -23,8 +23,14 @@ export function updateTableVisibilityFromFilter(visibleTableSet) {
     // Update the tableVisibility based on the filter selection
     Object.keys(state.tableVisibility).forEach(key => {
         const [schemaName, tableName] = key.split('.');
-        state.tableVisibility[key] = visibleTableSet.has(key);
-        state.schemas[schemaName].tables[tableName].visible = state.tableVisibility[key];
+        // Ensure the table still exists before trying to update visibility
+        if (state.schemas[schemaName] && state.schemas[schemaName].tables[tableName]) {
+            state.tableVisibility[key] = visibleTableSet.has(key);
+            state.schemas[schemaName].tables[tableName].visible = state.tableVisibility[key];
+        } else {
+            // Clean up visibility state if table no longer exists
+            delete state.tableVisibility[key];
+        }
     });
 }
 
@@ -68,6 +74,77 @@ export function updateTableZPositionToTop(key){
         state.tablePositions[key].z = newMaxZ;
     }
 }
+
+/**
+ * Adds a new, empty table to the specified schema with a unique name.
+ * @param {string} schemaName - The name of the schema to add the table to.
+ */
+export function addNewTable(schemaName) {
+    if (!state.schemas[schemaName]) {
+        console.error(`Schema "${schemaName}" not found.`);
+        return;
+    }
+
+    const schemaTables = state.schemas[schemaName].tables;
+    let counter = 1;
+    let newTableName = `table${counter}`;
+
+    // Find a unique table name within the schema
+    while (schemaTables[newTableName]) {
+        counter++;
+        newTableName = `table${counter}`;
+    }
+
+    // Create the new table object
+    const newTable = {
+        columns: [], // Start with no columns
+        relations: [],
+        visible: true, // Make it visible by default
+        columnsCollapsed: false // Start expanded
+    };
+
+    // Add the table to the schema
+    schemaTables[newTableName] = newTable;
+
+    // --- Assign Position and Z-index ---
+    const key = `${schemaName}.${newTableName}`;
+    // Simple positioning logic: place near top-left, slightly offset based on table count
+    const tableCount = Object.keys(schemaTables).length; // Includes the newly added one
+    const initialX = 50;
+    const initialY = 80; // Below schema title
+    const offsetX = (tableCount % 8) * 20; // Spread horizontally
+    const offsetY = Math.floor(tableCount / 8) * 40; // Spread vertically
+
+    // Try to find the schema area div to position relative to it
+    const schemaAreaElement = document.querySelector(`.schema-area[data-schema="${schemaName}"]`);
+    let schemaX = 0;
+    let schemaY = 0;
+    if (schemaAreaElement) {
+        schemaX = parseFloat(schemaAreaElement.style.left || '0');
+        schemaY = parseFloat(schemaAreaElement.style.top || '0');
+    }
+
+    const newX = schemaX + initialX + offsetX;
+    const newY = schemaY + initialY + offsetY;
+
+    // Assign the next available highest z-index
+    const newZ = getMaxTableZIndex() + 1;
+    state.tablePositions[key] = { x: newX, y: newY, z: newZ };
+    state.maxTableZIndex = newZ; // Update the cached max z-index
+
+    // --- Update other state ---
+    state.tableVisibility[key] = true; // Set visibility
+
+    // Update the filter list
+    if (window.TableFilter && typeof window.TableFilter.updateTableList === 'function') {
+        window.TableFilter.updateTableList(state.schemas);
+    }
+
+    console.log(`Added new table "${newTableName}" to schema "${schemaName}"`);
+
+    // Trigger re-render is handled externally after calling this function
+}
+
 // Make sure updateTableVisibilityFromFilter is globally available
 window.updateTableVisibilityFromFilter = updateTableVisibilityFromFilter;
 
@@ -307,6 +384,9 @@ export function deleteTable(schemaName, oldTableName){
         delete state.tableVisibility[oldKey];
     }
 
+    //update maxZIndex
+    state.maxTableZIndex -= 1;
+
    // Update visibility state
    initializeTableVisibility(state.schemas);
    window.TableFilter.updateTableList(state.schemas);
@@ -408,7 +488,8 @@ export function deleteSchema(oldSchemaName) {
     // If the schema is being dragged, update the dragged schema name
     if (state.isSchemaDragging && state.draggedSchemaName === oldSchemaName) {
         state.draggedSchemaName = null;
-        state.isSchemaDragging = false
+        state.isSchemaDragging = false;
+        state.initialTablePositionsForSchemaDrag = {};
     }
 
     // Update visibility state

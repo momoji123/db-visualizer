@@ -135,8 +135,14 @@ body {
     z-index: 1;
 	padding: 40px 20px 20px 20px;
     cursor: move;
-     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-     transition: box-shadow 0.2s ease-in-out;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: box-shadow 0.2s ease-in-out;
+    min-width: 250px; /* Ensure minimum size */
+    min-height: 150px;
+}
+
+.schema-area.empty-schema {
+    border-style: dashed; /* Indicate emptiness */
 }
 
 .schema-area.dragging {
@@ -153,6 +159,43 @@ body {
     color: #34495e;
     z-index: 2;
     pointer-events: none;
+}
+
+.schema-menu-container {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 15; /* Ensure menu is above schema content */
+}
+
+.schema-menu-button {
+    background: none;
+    border: none;
+    font-size: 1.2em;
+    cursor: pointer;
+    padding: 2px 5px;
+    line-height: 1;
+    color: #555;
+}
+.schema-menu-button:hover {
+    color: #000;
+}
+
+.schema-menu-dropdown {
+    display: none; /* Hidden by default */
+    position: absolute;
+    right: 0;
+    top: 100%; /* Position below the button */
+    background-color: white;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 20; /* Above schema title/area */
+    min-width: 120px;
+    border-radius: 4px;
+    overflow: hidden; /* Clip rounded corners */
+}
+
+.schema-menu-dropdown.show {
+    display: block; /* Show when class is added */
 }
 
 .table {
@@ -259,7 +302,7 @@ body {
     display: block; /* Show when toggled */
 }
 
-.table-menu-item {
+.table-menu-item, .schema-menu-item {
     display: block;
     width: 100%;
     padding: 8px 15px;
@@ -271,7 +314,7 @@ body {
     font-size: 0.9rem;
 }
 
-.table-menu-item:hover {
+.table-menu-item:hover, .schema-menu-item:hover {
     background-color: #f5f7fa;
 }
 

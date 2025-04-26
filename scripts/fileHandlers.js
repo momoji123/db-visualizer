@@ -57,7 +57,7 @@ export function handleExport() {
                         lines.push(`${schemaName};${tableName};${col};${relation.to.schema || ''};${relation.to.table || ''};${relation.to.column || ''};${pos.x};${pos.y};${pos.z};${visibility}`);
                     })
                 }else{
-                    lines.push(`${schemaName};${tableName};${col};${''};${''};${''};${pos.x};${pos.y};${pos.z};${visibility}\n`);
+                    lines.push(`${schemaName};${tableName};${col};${''};${''};${''};${pos.x};${pos.y};${pos.z};${visibility}`);
                 }
                 
             })
