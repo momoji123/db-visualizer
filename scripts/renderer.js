@@ -41,116 +41,132 @@ function renderSchemas() {
         });
 
         // Only draw schema if it contains visible tables with positions
-            if (hasVisibleTables) {
-                const marginX = 50; // Increased horizontal margin
-                const marginY = 60; // Increased vertical margin
+        const marginX = 50; // Increased horizontal margin
+        const marginY = 60; // Increased vertical margin
 
-                const finalX = minX - marginX;
-                const finalY = minY - marginY;
-                const width = (maxX - minX) + (marginX * 2);
-                const height = (maxY - minY) + (marginY * 2);
+        const finalX = minX - marginX;
+        const finalY = minY - marginY;
+        const width = (maxX - minX) + (marginX * 2);
+        const height = (maxY - minY) + (marginY * 2);
 
 
-                // Create schema area
-                const schemaArea = document.createElement('div');
-                schemaArea.className = 'schema-area';
-                schemaArea.style.left = `${finalX}px`;
-                schemaArea.style.top = `${finalY}px`;
-                schemaArea.style.width = `${width}px`;
-                schemaArea.style.height = `${height}px`;
-                schemaArea.dataset.schema = schemaName; // Add data attribute for identification
-                
-                // Create schema title inside the schema area
-                const schemaTitle = document.createElement('div');
-                schemaTitle.className = 'schema-title';
-                schemaTitle.textContent = schemaName;
-                // Position title relative to the schema area borders
-                schemaTitle.style.position = 'absolute';
-                schemaTitle.style.top = '15px'; // Adjusted position
-                schemaTitle.style.left = '25px';// Adjusted position
+        // Create schema area
+        const schemaArea = document.createElement('div');
+        schemaArea.className = 'schema-area';
+        schemaArea.style.left = `${finalX}px`;
+        schemaArea.style.top = `${finalY}px`;
+        schemaArea.style.width = `${width}px`;
+        schemaArea.style.height = `${height}px`;
+        schemaArea.dataset.schema = schemaName; // Add data attribute for identification
 
-                // --- Schema Menu ---
-                const menuContainer = document.createElement('div');
-                menuContainer.className = 'schema-menu-container'; // Use a distinct class
-                // Position the menu container (e.g., top right)
-                menuContainer.style.position = 'absolute';
-                menuContainer.style.top = '10px';
-                menuContainer.style.right = '10px';
-
-                const menuButton = document.createElement('button');
-                menuButton.className = 'schema-menu-button btn'; // Add btn for basic styling
-                menuButton.innerHTML = '&#x22EE;'; // Vertical ellipsis icon
-                menuButton.title = 'Schema options';
-                menuButton.addEventListener('click', (e) => {
-                    e.stopPropagation(); // Prevent schema drag
-                    // Toggle the dropdown visibility
-                    const dropdown = menuContainer.querySelector('.schema-menu-dropdown');
-                    // Close other menus first
-                    closeAllMenus();
-                    dropdown.classList.toggle('show');
-                });
-
-                const menuDropdown = document.createElement('div');
-                menuDropdown.className = 'schema-menu-dropdown'; // Use a distinct class
-
-                // Option 1: Add Table
-                const addTableOption = document.createElement('button');
-                addTableOption.className = 'schema-menu-item'; // Use a distinct class or reuse table-menu-item? Let's reuse for now.
-                addTableOption.textContent = "Add Table";
-                addTableOption.dataset.action = 'add-table';
-                addTableOption.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    console.log(`Add Table clicked for schema: ${schemaName}`);
-                    addNewTable(schemaName); // Call the state function
-                    renderVisualization(); // Re-render the UI
-                    menuDropdown.classList.remove('show'); // Close menu
-                });
-                menuDropdown.appendChild(addTableOption);
-
-                // --- Future schema options can be added here ---
-
-                menuContainer.appendChild(menuButton);
-                menuContainer.appendChild(menuDropdown);
-                // --- END Schema Menu ---
-
-                schemaArea.addEventListener('mouseup', (e) => {
-                    // Check specifically for the left mouse button
-                    if (e.button === 0) {
-                        isLeftMouseButtonDown = false;
-                    }
-                });
-                // <-- Add MouseDown Listener for Schema Dragging -->
-                schemaArea.addEventListener('mousedown', (e) => {
-                    // Only trigger schema drag if clicking directly on the schema area,
-                    // not on a table element that might be inside its bounds visually.
-                    if (e.button === 0) {
-                        isLeftMouseButtonDown = true;
-                    }
-                    if (e.target === schemaArea) {
-                        clearTimeout(clickTimer);
-                        let currentTarget = e.currentTarget;
-                        clickTimer = setTimeout(() => {
-                            if(isLeftMouseButtonDown){
-                                // This code will run if no second click (double-click) happens within the delay
-                                handleSchemaDragStart(e, currentTarget, schemaName);
-                            }
-                        }, delay);
-                    }
-                });
-
-                // For schema title double-click
-                schemaArea.addEventListener('dblclick', (e) => {
-                    clearTimeout(clickTimer);
-                    e.stopPropagation();
-                    startEditing(e.target, schemaName, null, null);
-                });
-
-                schemaArea.appendChild(schemaTitle);
-                schemaArea.appendChild(menuContainer);
-
-                // Prepend schema areas so tables render on top
-                DOM.tablesContainer.prepend(schemaArea); // Use prepend
+        
+        if (!hasVisibleTables) {
+            schemaArea.classList.add('empty-schema');       
         }
+        
+        // Create schema title inside the schema area
+        const schemaTitle = document.createElement('div');
+        schemaTitle.className = 'schema-title';
+        schemaTitle.textContent = schemaName;
+        // Position title relative to the schema area borders
+        schemaTitle.style.position = 'absolute';
+        schemaTitle.style.top = '15px'; // Adjusted position
+        schemaTitle.style.left = '25px';// Adjusted position
+
+        // --- Schema Menu ---
+        const menuContainer = document.createElement('div');
+        menuContainer.className = 'schema-menu-container'; // Use a distinct class
+        // Position the menu container (e.g., top right)
+        menuContainer.style.position = 'absolute';
+        menuContainer.style.top = '10px';
+        menuContainer.style.right = '10px';
+
+        const menuButton = document.createElement('button');
+        menuButton.className = 'schema-menu-button btn'; // Add btn for basic styling
+        menuButton.innerHTML = '&#x22EE;'; // Vertical ellipsis icon
+        menuButton.title = 'Schema options';
+        menuButton.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent schema drag
+            // Toggle the dropdown visibility
+            const dropdown = menuContainer.querySelector('.schema-menu-dropdown');
+            // Close other menus first
+            closeAllMenus();
+            dropdown.classList.toggle('show');
+        });
+
+        const menuDropdown = document.createElement('div');
+        menuDropdown.className = 'schema-menu-dropdown'; // Use a distinct class
+
+        // Option 1: Add Table
+        const addTableOption = document.createElement('button');
+        addTableOption.className = 'schema-menu-item'; // Use a distinct class or reuse table-menu-item? Let's reuse for now.
+        addTableOption.textContent = "Add Table";
+        addTableOption.dataset.action = 'add-table';
+        addTableOption.addEventListener('click', (e) => {
+            e.stopPropagation();
+            console.log(`Add Table clicked for schema: ${schemaName}`);
+            addNewTable(schemaName); // Call the state function
+            renderVisualization(); // Re-render the UI
+            menuDropdown.classList.remove('show'); // Close menu
+        });
+        menuDropdown.appendChild(addTableOption);
+
+        // Option2: edit Schema name
+        const editSchemaOption = document.createElement('button');
+        editSchemaOption.className = 'schema-menu-item';
+        editSchemaOption.textContent = "Edit Schema Name";
+        editSchemaOption.dataset.action = 'edit-schema';
+        editSchemaOption.addEventListener('click', (e) => {
+            e.stopPropagation();
+            console.log(`Attempting to edit schema: ${schemaName}`);
+            const schemaAreaElement = e.target.closest('.schema-area');
+            if (schemaAreaElement) {
+                const schemaTitleElement = schemaAreaElement.querySelector('.schema-title');
+                if (schemaTitleElement) {
+                    console.log("Found schema title element:", schemaTitleElement);
+                    startEditing(schemaTitleElement, schemaName, null, null);
+                } else {
+                    console.error("Could not find '.schema-title' within the schema area:", schemaAreaElement);
+                }
+            } else {
+                 console.error("Could not find parent '.schema-area' for the clicked button:", e.target);
+            }
+            closeAllMenus();
+        });
+        menuDropdown.appendChild(editSchemaOption);
+
+        // --- Future schema options can be added here ---
+
+        menuContainer.appendChild(menuButton);
+        menuContainer.appendChild(menuDropdown);
+        // --- END Schema Menu ---
+
+        schemaArea.addEventListener('mouseup', (e) => {
+            // Check specifically for the left mouse button
+            if (e.button === 0) {
+                isLeftMouseButtonDown = false;
+            }
+        });
+        // <-- Add MouseDown Listener for Schema Dragging -->
+        schemaArea.addEventListener('mousedown', (e) => {
+            // Only trigger schema drag if clicking directly on the schema area,
+            // not on a table element that might be inside its bounds visually.
+            if (e.button === 0) {
+                isLeftMouseButtonDown = true;
+            }
+            if (e.target === schemaArea) {
+                if(isLeftMouseButtonDown){
+                    // This code will run if no second click (double-click) happens within the delay
+                    handleSchemaDragStart(e, e.currentTarget, schemaName);
+                }
+            }
+        });
+
+        schemaArea.appendChild(schemaTitle);
+        schemaArea.appendChild(menuContainer);
+
+        // Prepend schema areas so tables render on top
+        DOM.tablesContainer.prepend(schemaArea); // Use prepend
     });
 }
 

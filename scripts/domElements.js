@@ -9,3 +9,4 @@ export const svgCanvas = document.getElementById('svg-canvas');
 export const tablesContainer = document.getElementById('tables-container');
 export const selectionInfo = document.getElementById('selection-info');
 export const statusInfo = document.getElementById('status-info');
+export const addSchemaBtn = document.getElementById('add-schema-btn');

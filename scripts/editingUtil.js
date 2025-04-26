@@ -4,6 +4,7 @@ import { renderVisualization } from './renderer.js'
 let keydownEventTriggered = false;
 
 export function startEditing(element, schema, table, column) {
+    console.log(element)
     const currentText = element.textContent;
     const input = document.createElement('input');
     input.type = 'text';

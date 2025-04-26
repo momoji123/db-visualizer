@@ -5,7 +5,7 @@ import { handleFileUpload, handleExport } from './fileHandlers.js';
 import { renderVisualization, renderTables } from './renderer.js';
 // dragDrop handlers are added/removed dynamically in dragDrop.js
 import { addRelation, getRelatedTablesTo, getRelatedTablesFrom } from './relationManager.js';
-import { updateSelectionInfo } from './uiUpdater.js';
+import { updateSelectionInfo, showWorkspace } from './uiUpdater.js';
 
 export function handleColumnClick(schema, table, column) {
      // Find if the exact column is already selected
@@ -57,6 +57,8 @@ export function setupInitialListeners() {
     DOM.uploadBtnEmpty.addEventListener('click', () => DOM.fileInput.click());
     DOM.fileInput.addEventListener('change', handleFileUpload);
     DOM.exportBtn.addEventListener('click', handleExport);
+    DOM.addSchemaBtn.addEventListener('click', addSchema);
+
 
     // Note: Drag/drop listeners for tables are added in dragDrop.js on mousedown
     // Note: Column click listeners are added dynamically in renderer.js
@@ -156,4 +158,14 @@ export function handleTableMenuAction(event) {
             dropdown.classList.remove('show');
         }
     }
+}
+
+function addSchema(event) {
+    console.log("Adding new schema...");
+    state.schemas[`Schema ${Object.keys(state.schemas).length + 1}`] = {
+        tables: {},
+    };
+    console.log(state.schemas)
+    showWorkspace();
+    renderVisualization();
 }
